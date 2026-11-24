@@ -30,6 +30,7 @@ import { NativeChatModelCombobox } from './NativeChatModelCombobox'
 import { useNativeChatPickerFocusReturn } from '../../../composer/focus/native-chat-picker-focus-return'
 import { NativeChatSessionOptionRows } from './NativeChatSessionOptionRows'
 import { NativeChatSessionOptionWriteGroup } from './NativeChatSessionOptionWriteGroup'
+import { useNativeChatSessionOptionStepShortcuts } from './use-native-chat-session-option-step-shortcuts'
 
 export type NativeChatSessionOptionPickersProps = {
   surface: SessionOptionsSurface | null
@@ -187,6 +188,14 @@ function SessionOptionPopover(props: {
     wasOpen.current = open
   }, [open, demandModelCatalog])
   const focusReturn = useNativeChatPickerFocusReturn(props.focusComposer)
+  useNativeChatSessionOptionStepShortcuts({
+    model,
+    options,
+    isWorking: props.isWorking,
+    pendingIds,
+    onSet: props.onSet,
+    triggerRef: focusReturn.triggerRef
+  })
   const modelTitle = t('components.native-chat.composer.model', 'Model')
   const modelLabel = nativeChatModelPillLabel(model, say)
   const effort = options.find((option) => option.id === 'effort')

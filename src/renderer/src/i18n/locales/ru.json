@@ -23623,6 +23623,10 @@
   "keybindings": {
     "title": {
       "chatFind": "Найти в чате",
+      "chatNextModel": "Следующая модель",
+      "chatPreviousModel": "Предыдущая модель",
+      "chatNextEffort": "Повысить усилие",
+      "chatPreviousEffort": "Понизить усилие",
       "editorFind": "Найти в редакторе",
       "editorReplace": "Заменить в редакторе",
       "editorToggleChangesView": "Включить или выключить просмотр изменений",

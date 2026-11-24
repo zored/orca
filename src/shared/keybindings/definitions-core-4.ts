@@ -41,6 +41,38 @@ export const KEYBINDING_DEFINITION_CORE_4: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Mod+F'])
   },
   {
+    id: 'chat.nextModel',
+    title: 'Next model',
+    group: 'Chat',
+    scope: 'chat',
+    searchKeywords: ['shortcut', 'chat', 'model', 'next', 'switch'],
+    defaultBindings: platformBindings(['Mod+Alt+Period'])
+  },
+  {
+    id: 'chat.previousModel',
+    title: 'Previous model',
+    group: 'Chat',
+    scope: 'chat',
+    searchKeywords: ['shortcut', 'chat', 'model', 'previous', 'switch'],
+    defaultBindings: platformBindings(['Mod+Alt+Comma'])
+  },
+  {
+    id: 'chat.nextEffort',
+    title: 'Raise effort',
+    group: 'Chat',
+    scope: 'chat',
+    searchKeywords: ['shortcut', 'chat', 'effort', 'reasoning', 'thinking', 'raise', 'next'],
+    defaultBindings: platformBindings(['Mod+Alt+Equal'])
+  },
+  {
+    id: 'chat.previousEffort',
+    title: 'Lower effort',
+    group: 'Chat',
+    scope: 'chat',
+    searchKeywords: ['shortcut', 'chat', 'effort', 'reasoning', 'thinking', 'lower', 'previous'],
+    defaultBindings: platformBindings(['Mod+Alt+Minus'])
+  },
+  {
     id: 'terminal.toggleNativeChat',
     title: 'Switch between Chat UI and terminal',
     group: 'Chat',
