@@ -46,6 +46,7 @@ Add `"$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schem
 | `contributes.newFiles` | [NewFileContribution](#newfilecontribution)[] | no | 1.4.245 | Untitled files the user can create from the + menu and the command palette. At most 16. |
 | `contributes.settings` | [SettingContribution](#settingcontribution)[] | no | 1.4.246 | Settings Orca shows under the plugin in Settings; code reads them with `settings.get` (`settings:own`). At most 64. |
 | `contributes.statusBarItems` | [StatusBarItemContribution](#statusbaritemcontribution)[] | no | 1.4.248 | Items in the status bar; pressing one runs its `command`, and a worker changes them with `statusBar.update`. With `main`, the worker runs for as long as the plugin is enabled. At most 8. |
+| `contributes.agentPresets` | [AgentPresetGroupContribution](#agentpresetgroupcontribution)[] | no | 1.4.273 | Groups of agent presets in the new-tab menu, above the built-in agents; the worker fills each with `agentPresets.set`. With `main`, the worker runs for as long as the plugin is enabled. At most 4. |
 | `contributes.agentHarnesses` | any[] | no | 1.4.245 | Reserved for coding-agent harness definitions; must be empty until their format is defined. |
 | `contributes.skills` | any[] | no | 1.4.245 | Reserved for agent skills; must be empty until their format is defined. |
 | `contributes.mcpServers` | any[] | no | 1.4.245 | Reserved for MCP server definitions; must be empty until their format is defined. |
@@ -230,6 +231,15 @@ An item in the status bar. Requires the `declarative` profile; a `trusted-worker
 | `tone` | `"neutral"` \| `"accent"` \| `"success"` \| `"warning"` \| `"danger"` | no | 1.4.248 | Colour of the item. Defaults to `neutral`. Example: `"warning"` |
 | `tooltip` | string | no | 1.4.248 | Shown on hover. Defaults to the plugin name. |
 | `command` | string | no | 1.4.248 | Id of a command this plugin contributes in `contributes.commands`, run when the item is pressed. Example: `"guard.showLog"` |
+
+## AgentPresetGroupContribution
+
+A group of agent presets in the new-tab menu, above the built-in agents. Requires `trusted-worker`; the worker fills it with `agentPresets.set`. Declaring it keeps the worker running and lists the group on the plugin page; a worker may also set an undeclared group by passing its `title`.
+
+| Field | Type | Required | Since | Description |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | 1.4.273 | Group id, unique among this plugin's preset groups; `agentPresets.set` names it. Example: `"profiles"` |
+| `title` | string | yes | 1.4.273 | Heading shown above the group in the new-tab menu. Example: `"Profiles"` |
 
 ## Capability
 

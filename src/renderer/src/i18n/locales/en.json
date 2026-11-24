@@ -30884,5 +30884,10 @@
     "moveLeft": "Move left",
     "moveRight": "Move right",
     "reset": "Reset tab order"
+  },
+  "pluginAgentPresets": {
+    "agentUnavailable": "{{value0}} isn’t available in this workspace",
+    "applyFailed": "Couldn’t apply {{value0}}",
+    "updateCandidate": "Agent presets in the + menu"
   }
 }

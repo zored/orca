@@ -247,6 +247,7 @@ export async function buildPluginList(
           ...(command.replaces ? { replaces: command.replaces } : {})
         })),
         statusBarItems: plugin.manifest.contributes.statusBarItems,
+        agentPresets: plugin.manifest.contributes.agentPresets,
         hooks: plugin.manifest.contributes.hooks.map((hook) => hook.event),
         hasWorker: Boolean(plugin.manifest.main),
         vmRecipes: service.contentPacks.vmRecipes.preview(plugin.pluginKey).map(({ recipe }) => ({

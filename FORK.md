@@ -22,4 +22,42 @@ Terminal sessions, automations and chat history stay in the regular install.
 
 ## Features
 
-None yet.
+### Agent presets in the new-tab menu
+
+A plugin can put its own group of agent presets at the top of the `+` new-tab menu, above Claude,
+Codex and the other built-in agents. Each row shows the preset's icon, title and shortcut hint.
+
+Choosing a preset:
+
+- the active tab is an empty chat of the same agent: its model and effort switch in place, as if
+  picked in the chat's model menu;
+- otherwise Orca starts the agent with that model and effort, as a chat or a terminal, whichever
+  the agent's row would open.
+
+Plugin API (host API 1.11, desktop only, kept until restart or until the plugin is disabled):
+
+```ts
+await orca.host.call('agentPresets.set', {
+  group: 'profiles',
+  title: 'Agent profiles', // optional when the manifest declares the group
+  items: [
+    {
+      id: 'opus',
+      title: 'Opus deep',
+      agent: 'claude',
+      model: 'opus',
+      effort: 'high',
+      icon: 'avatars/claude.png',
+      keybinding: '⌘⌥1'
+    }
+  ]
+})
+```
+
+- `items` replaces the whole group, in menu order; an empty list hides it. At most 32 presets, 4 groups.
+- `icon` is a PNG or WebP inside the plugin folder, up to 256 KB; `keybinding` is display text only.
+- A preset whose agent this workspace can't start shows disabled.
+- `contributes.agentPresets: [{ "id", "title" }]` in the manifest is optional: it keeps the worker
+  running from startup and lists the group on the plugin page. Older Orca refuses that manifest key,
+  so a plugin that must keep loading there passes `title` instead and checks
+  `orca.host.has('agentPresets.set')`.

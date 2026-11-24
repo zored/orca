@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ProjectedAgentMenuItems } from '../../agent/launch-menu/AgentMenuItems'
+import { PluginAgentPresetMenuItems } from '../../agent/launch-menu/PluginAgentPresetMenuItems'
 import { OpenAgentSettingsMenuItem } from '../../agent/launch-menu/OpenAgentSettingsMenuItem'
 import { TabBarAgentPickerEntry } from '../create-entry/TabBarAgentPickerEntry'
 import { TabStripScrollIndicator } from './TabStripScrollIndicator'
@@ -318,13 +319,20 @@ export function renderTabBarSurface(
               {bot ? (
                 <OpenAgentSettingsMenuItem variant="create" />
               ) : (
-                <ProjectedAgentMenuItems
-                  model={agentMenu}
-                  pickerInventory={agentPickerInventory}
-                  onSelectPickerAgent={selectPickerAgent}
-                  hidePickerSearch={!terminalOnly && Boolean(onOpenEntry)}
-                  runLaunch={launchAgentRow}
-                />
+                <>
+                  <PluginAgentPresetMenuItems
+                    inventory={agentPickerInventory}
+                    activeTabId={itemProjection.activeUnifiedTabId}
+                    runLaunch={launchAgentRow}
+                  />
+                  <ProjectedAgentMenuItems
+                    model={agentMenu}
+                    pickerInventory={agentPickerInventory}
+                    onSelectPickerAgent={selectPickerAgent}
+                    hidePickerSearch={!terminalOnly && Boolean(onOpenEntry)}
+                    runLaunch={launchAgentRow}
+                  />
+                </>
               )}
             </>
           ) : null}

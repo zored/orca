@@ -12,6 +12,10 @@ import {
   type PluginStatusBarOverrides
 } from '../../../shared/plugins/contributions/plugin-status-bar-state'
 import {
+  PLUGIN_AGENT_PRESETS_CHANGED_CHANNEL,
+  type PluginAgentPresetSnapshot
+} from '../../../shared/plugins/contributions/plugin-agent-preset-contribution'
+import {
   PLUGIN_VIEW_REPLY_CHANNEL,
   PLUGIN_VIEW_REQUEST_CHANNEL,
   type PluginViewRequest
@@ -125,6 +129,15 @@ export const pluginsApi = {
     ipcRenderer.on(PLUGIN_STATUS_BAR_CHANGED_CHANNEL, listener)
     return () => {
       ipcRenderer.removeListener(PLUGIN_STATUS_BAR_CHANGED_CHANNEL, listener)
+    }
+  },
+  agentPresetsState: () => ipcRenderer.invoke('plugins:agentPresetsState'),
+  onAgentPresetsChanged: (callback): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, presets: PluginAgentPresetSnapshot) =>
+      callback(presets)
+    ipcRenderer.on(PLUGIN_AGENT_PRESETS_CHANGED_CHANNEL, listener)
+    return () => {
+      ipcRenderer.removeListener(PLUGIN_AGENT_PRESETS_CHANGED_CHANNEL, listener)
     }
   },
   onAutoUpdateChanged: (callback): (() => void) => {

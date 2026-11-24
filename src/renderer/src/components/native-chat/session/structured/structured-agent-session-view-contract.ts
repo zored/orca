@@ -5,6 +5,8 @@ import type { NativeChatRewindHost } from '../../messages/actions/use-native-cha
 
 export type StructuredAgentSessionViewArgs = {
   sessionId: string
+  /** The tab showing it; absent where no tab does (a bot group's reader). */
+  tabId?: string
   target: RuntimeClientTarget
   agent: AgentType
   isVisible: boolean

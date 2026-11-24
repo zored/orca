@@ -82,6 +82,9 @@ const contributionGrowthLabel = (point: PluginContributionPoint, t: Translate): 
   if (point === 'settings') {
     return t('auto.components.settings.PluginUpdateAllDialog.newSettings', 'A settings page')
   }
+  if (point === 'agentPresets') {
+    return t('pluginAgentPresets.updateCandidate', 'Agent presets in the + menu')
+  }
   if (point === 'statusBarItems') {
     return t('auto.components.settings.PluginUpdateAllDialog.newStatusBarItems', 'Status bar items')
   }

@@ -345,6 +345,16 @@
             "$ref": "#/$defs/StatusBarItemContribution"
           }
         },
+        "agentPresets": {
+          "default": [],
+          "description": "Groups of agent presets in the new-tab menu, above the built-in agents; the worker fills each with `agentPresets.set`. With `main`, the worker runs for as long as the plugin is enabled. At most 4.",
+          "x-orca-since": "1.4.273",
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentPresetGroupContribution"
+          }
+        },
         "agentHarnesses": {
           "description": "Reserved for coding-agent harness definitions; must be empty until their format is defined.",
           "x-orca-since": "1.4.245",
@@ -1564,6 +1574,37 @@
       ],
       "additionalProperties": false,
       "description": "An item in the status bar. Requires the `declarative` profile; a `trusted-worker` can change it with `statusBar.update`."
+    },
+    "AgentPresetGroupContribution": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Group id, unique among this plugin's preset groups; `agentPresets.set` names it.",
+          "x-orca-since": "1.4.273",
+          "examples": [
+            "profiles"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Heading shown above the group in the new-tab menu.",
+          "x-orca-since": "1.4.273",
+          "examples": [
+            "Profiles"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "description": "A group of agent presets in the new-tab menu, above the built-in agents. Requires `trusted-worker`; the worker fills it with `agentPresets.set`. Declaring it keeps the worker running and lists the group on the plugin page; a worker may also set an undeclared group by passing its `title`."
     },
     "Capability": {
       "type": "object",

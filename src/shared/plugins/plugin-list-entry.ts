@@ -3,6 +3,7 @@ import type { PluginCatalogType } from './catalog/plugin-catalog-types'
 import type { PluginExecutionProfile } from './contributions/plugin-execution-profile'
 import type { PluginHostImages } from './images/plugin-image-url'
 import type { PluginStatusBarItemContribution } from './contributions/plugin-status-bar-item-contribution'
+import type { PluginAgentPresetGroupContribution } from './contributions/plugin-agent-preset-contribution'
 
 /** One installed plugin as main projects it for every client (preload IPC and the `plugins.list`
  *  RPC). Optional fields are absent on older hosts, so paired clients must tolerate them. */
@@ -110,6 +111,9 @@ export type PluginHostListEntry = {
   }[]
   /** The manifest's status bar items; a worker's changes arrive separately. Absent on older hosts. */
   statusBarItems?: PluginStatusBarItemContribution[]
+  /** The manifest's agent preset groups; a worker's presets arrive separately. Absent on older
+   *  hosts. */
+  agentPresets?: PluginAgentPresetGroupContribution[]
   /** The hooks its manifest lists, so a window can skip asking when none applies. Absent on older
    *  hosts. */
   hooks?: string[]

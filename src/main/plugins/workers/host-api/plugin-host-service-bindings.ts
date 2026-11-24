@@ -2,6 +2,7 @@ import { PLUGIN_WORKSPACE_TERMINAL_LIMIT } from '../../../../shared/plugins/work
 import type { PluginHostServices, PluginDesktopFrameServices } from './plugin-host-method-bindings'
 import type { PluginPanelBridgeServices } from './plugin-host-panel-method-bindings'
 import type { PluginStatusBarState } from '../../status-bar/plugin-status-bar-state'
+import type { PluginAgentPresetState } from '../../agent-presets/plugin-agent-preset-state'
 import type { PluginRuntimeRpc } from './plugin-host-runtime-call'
 import type { PluginHostRendererActions } from '../../view/plugin-host-renderer-actions'
 import {
@@ -69,6 +70,13 @@ export function bindPluginHostServices(input: {
   /** Ids of the calling plugin's `contributes.statusBarItems`, and its install's revision. */
   declaredStatusBarItemIds?: readonly string[]
   statusBarRevision?: string
+  agentPresets?: PluginAgentPresetState | null
+  /** The calling plugin's `contributes.agentPresets` ids and folder; absent for an unknown plugin. */
+  agentPresetPlugin?: {
+    groups: readonly { id: string; title: string }[]
+    rootDir: string
+    revision: string
+  }
 }): PluginHostServices {
   const declared = new Map((input.declaredSettings ?? []).map((setting) => [setting.key, setting]))
   const { delegate, pluginsDataDir } = input
@@ -81,6 +89,10 @@ export function bindPluginHostServices(input: {
     statusBar: input.statusBar
       ? statusBarServices(input.statusBar, input.declaredStatusBarItemIds, input.statusBarRevision)
       : null,
+    agentPresets:
+      input.agentPresets && input.agentPresetPlugin
+        ? agentPresetServices(input.agentPresets, input.agentPresetPlugin)
+        : null,
     runtimeRpc: delegate.callRuntime ?? null,
     renderer: input.renderer ?? null,
     resolveActiveWorktreeContext: async () => {
@@ -167,6 +179,23 @@ function statusBarServices(
         return false
       }
       state.update(pluginKey, revision, itemId, patch)
+      return true
+    }
+  }
+}
+
+function agentPresetServices(
+  state: PluginAgentPresetState,
+  plugin: NonNullable<Parameters<typeof bindPluginHostServices>[0]['agentPresetPlugin']>
+): NonNullable<PluginHostServices['agentPresets']> {
+  return {
+    set: async (pluginKey, group, title, items) => {
+      const heading = title ?? plugin.groups.find((declared) => declared.id === group)?.title
+      if (heading === undefined) {
+        return false
+      }
+      const { revision, rootDir } = plugin
+      await state.set({ pluginKey, revision, rootDir }, { id: group, title: heading }, items)
       return true
     }
   }

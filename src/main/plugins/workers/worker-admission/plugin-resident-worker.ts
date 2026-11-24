@@ -7,11 +7,13 @@ import type { PluginEventDeliveryContext } from '../../events/plugin-event-deliv
 import type { PluginService } from '../../plugin-service'
 
 /** A plugin whose worker runs for as long as the plugin is enabled: hooks must answer at once,
- *  and status bar items are kept current by a worker no event ever wakes. */
+ *  and status bar items and agent presets are kept current by a worker no event ever wakes. */
 export function pluginNeedsResidentWorker(manifest: PluginManifest): boolean {
   return (
     manifest.main !== undefined &&
-    (manifest.contributes.hooks.length > 0 || manifest.contributes.statusBarItems.length > 0)
+    (manifest.contributes.hooks.length > 0 ||
+      manifest.contributes.statusBarItems.length > 0 ||
+      manifest.contributes.agentPresets.length > 0)
   )
 }
 
