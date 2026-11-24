@@ -61,3 +61,11 @@ await orca.host.call('agentPresets.set', {
   running from startup and lists the group on the plugin page. Older Orca refuses that manifest key,
   so a plugin that must keep loading there passes `title` instead and checks
   `orca.host.has('agentPresets.set')`.
+
+### Model and effort shortcuts in chats
+
+In a native chat, `⌘⌥.` / `⌘⌥,` switch to the next / previous model and `⌘⌥=` / `⌘⌥-` raise /
+lower reasoning effort (Ctrl+Alt on Linux and Windows). They act on the focused chat only, go
+through the model picker's own path (pending state, error toasts, Claude's switch confirmation),
+stop at the ends of the list and skip effort levels the model doesn't support. Rebind them in
+Settings → Shortcuts → Chat.
