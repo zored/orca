@@ -6,6 +6,7 @@ import type {
 } from '../../shared/plugins/catalog/plugin-kill-list'
 import type { PluginDesktopFrameServices } from './workers/host-api/plugin-host-method-bindings'
 import type { PluginStatusBarState } from './status-bar/plugin-status-bar-state'
+import type { PluginAgentPresetState } from './agent-presets/plugin-agent-preset-state'
 import type { PluginAppearanceService } from './appearance/plugin-appearance-service'
 import type { PluginEditorTypographySource } from './appearance/plugin-editor-typography'
 
@@ -30,6 +31,8 @@ export type PluginServiceOptions = {
   getDesktopFrameServices?: () => PluginDesktopFrameServices | null
   /** Desktop main only: what `statusBar.update` writes for the windows' status bars. */
   statusBar?: PluginStatusBarState
+  /** Desktop main only: what `agentPresets.set` writes for the new-tab menus. */
+  agentPresets?: PluginAgentPresetState
   appearance?: PluginAppearanceService
   /** What `editor.readTypography` answers; absent where no profile settings are loaded. */
   editorTypography?: PluginEditorTypographySource

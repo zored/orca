@@ -51,6 +51,11 @@ import {
   pluginStatusBarItemContributionSchema
 } from './plugin-status-bar-item-contribution'
 import {
+  PLUGIN_AGENT_PRESET_GROUP_LIMIT,
+  PLUGIN_AGENT_PRESETS_SINCE,
+  pluginAgentPresetGroupContributionSchema
+} from './plugin-agent-preset-contribution'
+import {
   PLUGIN_SETTING_LIMIT,
   pluginSettingContributionSchema
 } from './plugin-settings-contribution'
@@ -72,7 +77,8 @@ export const PLUGIN_CONTRIBUTION_POINTS = [
   'customEditors',
   'newFiles',
   'settings',
-  'statusBarItems'
+  'statusBarItems',
+  'agentPresets'
 ] as const
 
 export type PluginContributionPoint = (typeof PLUGIN_CONTRIBUTION_POINTS)[number]
@@ -234,6 +240,12 @@ export const pluginContributesFields = {
     PLUGIN_STATUS_BAR_ITEM_LIMIT,
     'Items in the status bar; pressing one runs its `command`, and a worker changes them with `statusBar.update`. With `main`, the worker runs for as long as the plugin is enabled.',
     PLUGIN_STATUS_BAR_SINCE
+  ),
+  agentPresets: contributionList(
+    pluginAgentPresetGroupContributionSchema,
+    PLUGIN_AGENT_PRESET_GROUP_LIMIT,
+    'Groups of agent presets in the new-tab menu, above the built-in agents; the worker fills each with `agentPresets.set`. With `main`, the worker runs for as long as the plugin is enabled.',
+    PLUGIN_AGENT_PRESETS_SINCE
   )
 } satisfies Record<PluginContributionPoint, z.ZodType>
 
@@ -283,5 +295,7 @@ export const PLUGIN_CONTRIBUTION_POINT_POLICY: Record<
   // Why sandboxed-ui: only code reads a setting, and panels are the least code there is.
   settings: { execution: 'sandboxed-ui', catalogType: null, bindsContent: false },
   // Why declarative: a static item only names its own command; updating it needs a worker.
-  statusBarItems: { execution: 'declarative', catalogType: null, bindsContent: false }
+  statusBarItems: { execution: 'declarative', catalogType: null, bindsContent: false },
+  // Why trusted-worker: only a worker fills a group, and a preset starts an agent.
+  agentPresets: { execution: 'trusted-worker', catalogType: null, bindsContent: false }
 }

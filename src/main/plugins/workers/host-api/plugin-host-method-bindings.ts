@@ -25,6 +25,10 @@ import {
   PLUGIN_STATUS_BAR_HANDLERS,
   type PluginStatusBarServices
 } from './plugin-host-status-bar-method-bindings'
+import {
+  PLUGIN_AGENT_PRESET_HANDLERS,
+  type PluginAgentPresetServices
+} from './plugin-host-agent-preset-method-bindings'
 import { PLUGIN_WORKSPACE_ACTION_HANDLERS } from './plugin-host-workspace-method-bindings'
 import { PLUGIN_TERMINAL_ACTION_HANDLERS } from './plugin-host-terminal-method-bindings'
 import { PLUGIN_WORKSPACE_CREATE_HANDLERS } from './plugin-host-workspace-create-bindings'
@@ -116,6 +120,8 @@ export type PluginHostServices = {
   panels?: PluginPanelBridgeServices | null
   /** Absent where no Orca window draws a status bar. */
   statusBar?: PluginStatusBarServices | null
+  /** Absent where no Orca window draws a new-tab menu. */
+  agentPresets?: PluginAgentPresetServices | null
   /** The runtime methods the `orca` CLI calls, for workspace actions; absent without a runtime. */
   runtimeRpc?: PluginRuntimeRpc | null
   /** Orca's window, for actions only it can take; absent in headless serve. */
@@ -278,7 +284,8 @@ const HANDLERS: Record<PluginHostMethodName, BoundPluginHostMethod> = {
   ...PLUGIN_TERMINAL_ACTION_HANDLERS,
   ...PLUGIN_WORKSPACE_CREATE_HANDLERS,
   ...PLUGIN_AUTOMATION_HANDLERS,
-  ...PLUGIN_AGENT_HISTORY_HANDLERS
+  ...PLUGIN_AGENT_HISTORY_HANDLERS,
+  ...PLUGIN_AGENT_PRESET_HANDLERS
 }
 
 function requireDesktop(services: PluginHostServices): PluginDesktopFrameServices {

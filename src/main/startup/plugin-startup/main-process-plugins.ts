@@ -41,7 +41,7 @@ import { emitPluginWorktreeLifecycle } from '../pty-startup/main-process-pty-sta
 import { mainProcessState as state } from '../main-process-state'
 import type { DesktopCore } from '../../core-desktop/desktop-core'
 import type { Store } from '../../persistence/loading-store/store'
-import { PluginStatusBarState } from '../../plugins/status-bar/plugin-status-bar-state'
+import { createDesktopPluginChromeSinks } from '../../plugins/agent-presets/desktop-plugin-chrome-sinks'
 import { createDesktopPluginAppearance } from '../../plugins/appearance/desktop-plugin-appearance'
 import { bindPluginEditorTypography } from '../../plugins/appearance/plugin-editor-typography'
 import { bindDesktopPluginNotices } from './desktop-plugin-notices'
@@ -132,7 +132,7 @@ export async function initializeMainProcessPlugins(core: DesktopCore, store: Sto
     getPluginKillListEntry: getPluginBlock,
     hostEntryPath: resolvePluginHostEntryPath(app.getAppPath(), app.isPackaged),
     getDesktopFrameServices: getPluginDesktopFrameServices,
-    statusBar: new PluginStatusBarState(),
+    ...createDesktopPluginChromeSinks(pluginImageCache),
     appearance: createDesktopPluginAppearance(store, () => core.pluginService),
     editorTypography: bindPluginEditorTypography(store, () => core.pluginService),
     bundledPluginRoot

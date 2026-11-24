@@ -1454,6 +1454,7 @@
     "localBuild.schemaCompatibility",
     "localBuild.signatureRequirement",
     "localBuild.useButton",
+    "pluginAgentPresets.updateCandidate",
     "plugins.actionConfirmation.automationInWorkspace",
     "plugins.actionConfirmation.automationNewWorkspaces",
     "plugins.actionConfirmation.cancel",

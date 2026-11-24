@@ -42,6 +42,7 @@ import type { PluginGitSourceResolution } from '../../../shared/plugins/installa
 
 import type { PluginHostListEntry } from '../../../shared/plugins/plugin-list-entry'
 import type { PluginStatusBarOverrides } from '../../../shared/plugins/contributions/plugin-status-bar-state'
+import type { PluginAgentPresetSnapshot } from '../../../shared/plugins/contributions/plugin-agent-preset-contribution'
 import type { PluginDeclaredSettingsSnapshot } from '../../../shared/plugins/contributions/plugin-settings-values'
 import type { PluginJsonValue } from '../../../shared/plugins/workers/plugin-host-api-storage-schemas'
 
@@ -280,6 +281,9 @@ export type PluginsApi = {
     text: string
   }) => Promise<EditorSaveHookDecision>
   onStatusBarChanged?: (callback: (overrides: PluginStatusBarOverrides) => void) => () => void
+  /** What workers set with `agentPresets.set`. Desktop only; older hosts reject. */
+  agentPresetsState?: () => Promise<PluginAgentPresetSnapshot>
+  onAgentPresetsChanged?: (callback: (presets: PluginAgentPresetSnapshot) => void) => () => void
 }
 
 export type PluginAutoUpdateEvent = {

@@ -19,10 +19,10 @@ import {
 } from './plugin-contribution-row-labels'
 
 /** The manifest points shown as named rows; commands, shortcuts, events and settings have their
- *  own lists, and hooks show as the trusted-worker access they need. */
+ *  own lists, hooks show as the trusted-worker access they need, and agent presets are a worker's. */
 export type PluginContributionKind = Exclude<
   PluginContributionPoint,
-  'commands' | 'keybindings' | 'events' | 'hooks' | 'settings'
+  'commands' | 'keybindings' | 'events' | 'hooks' | 'settings' | 'agentPresets'
 >
 
 /** One named thing a plugin adds, ready to show as a row. */

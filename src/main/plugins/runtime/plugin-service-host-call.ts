@@ -74,7 +74,10 @@ export function resolvePluginServiceHostCallPolicy(input: {
   desktop: PluginDesktopFrameServices | null | undefined
   panels: PluginPanelBridgeServices | null
   /** The service's desktop sinks; each is absent where this Orca has none. */
-  sinks: Pick<PluginServiceOptions, 'statusBar' | 'appearance' | 'editorTypography'>
+  sinks: Pick<
+    PluginServiceOptions,
+    'statusBar' | 'appearance' | 'editorTypography' | 'agentPresets'
+  >
   audit: PluginAuditLog
   log?: (pluginKey: string) => (line: string) => void
 }): PluginHostCallPolicy {
@@ -96,7 +99,17 @@ export function resolvePluginServiceHostCallPolicy(input: {
           declaredStatusBarItemIds: plugin?.manifest.contributes.statusBarItems.map(
             (item) => item.id
           ),
-          statusBarRevision: plugin ? pluginStatusBarRevision(plugin) : undefined
+          statusBarRevision: plugin ? pluginStatusBarRevision(plugin) : undefined,
+          agentPresets: input.sinks.agentPresets,
+          ...(plugin
+            ? {
+                agentPresetPlugin: {
+                  groups: plugin.manifest.contributes.agentPresets,
+                  rootDir: plugin.rootDir,
+                  revision: pluginStatusBarRevision(plugin)
+                }
+              }
+            : {})
         })
       : null,
     audit: input.audit,

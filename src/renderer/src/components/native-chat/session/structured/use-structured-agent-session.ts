@@ -34,6 +34,7 @@ import {
 } from './writes/use-structured-agent-session-stop'
 import { useStructuredAgentSessionTransport } from './use-structured-agent-session-transport'
 import { useStructuredAgentSessionOptions } from '../options/structured/use-structured-agent-session-options'
+import { useNativeChatPresetTarget } from '../options/structured/native-chat-preset-target'
 import { useStructuredAgentSessionThreadGoal } from '../goals/use-structured-agent-session-thread-goal'
 import { useStructuredAgentSessionContextUsage } from '../../usage/use-structured-agent-session-context-usage'
 import { useStructuredAgentSessionRailOutline } from '../../viewport/rail/use-structured-agent-session-rail-outline'
@@ -210,6 +211,9 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
     useStructuredAgentSessionTranscriptPending(transportState, pending, isWorking),
     transportState.submissions
   )
+  const settled = !transportEnabled || state.status === 'ready'
+  const rows = messages.length + transportState.submissions.length + pending.length
+  useNativeChatPresetTarget(args.tabId, agent, setStructuredOption, settled && rows === 0)
   const editTransport = useQueuedMessageEditTransport(target, sessionId, write)
   const queuedController = useStructuredAgentSessionQueuedMessages({
     ...transportState,

@@ -49,6 +49,7 @@
 - `newFiles` (NewFileContribution[], since 1.4.245): Untitled files the user can create from the + menu and the command palette. At most 16.
 - `settings` (SettingContribution[], since 1.4.246): Settings Orca shows under the plugin in Settings; code reads them with `settings.get` (`settings:own`). At most 64.
 - `statusBarItems` (StatusBarItemContribution[], since 1.4.248): Items in the status bar; pressing one runs its `command`, and a worker changes them with `statusBar.update`. With `main`, the worker runs for as long as the plugin is enabled. At most 8.
+- `agentPresets` (AgentPresetGroupContribution[], since 1.4.273): Groups of agent presets in the new-tab menu, above the built-in agents; the worker fills each with `agentPresets.set`. With `main`, the worker runs for as long as the plugin is enabled. At most 4.
 
 Reserved (must stay empty arrays): `agentHarnesses`, `skills`, `mcpServers`, `taskSources`, `connections`, `sidebarCards`.
 
@@ -193,6 +194,13 @@ An item in the status bar. Requires the `declarative` profile; a `trusted-worker
 - `tone` ("neutral" | "accent" | "success" | "warning" | "danger", since 1.4.248): Colour of the item. Defaults to `neutral`.
 - `tooltip` (string, since 1.4.248): Shown on hover. Defaults to the plugin name.
 - `command` (string, since 1.4.248): Id of a command this plugin contributes in `contributes.commands`, run when the item is pressed.
+
+## AgentPresetGroupContribution
+
+A group of agent presets in the new-tab menu, above the built-in agents. Requires `trusted-worker`; the worker fills it with `agentPresets.set`. Declaring it keeps the worker running and lists the group on the plugin page; a worker may also set an undeclared group by passing its `title`.
+
+- `id` (string, required, since 1.4.273): Group id, unique among this plugin's preset groups; `agentPresets.set` names it.
+- `title` (string, required, since 1.4.273): Heading shown above the group in the new-tab menu.
 
 ## Capability
 
