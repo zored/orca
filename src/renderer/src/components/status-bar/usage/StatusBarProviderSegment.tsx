@@ -6,20 +6,18 @@ import React from 'react'
 import { useSectionOnScreen } from '../../right-sidebar/source-control/panel/section-viewport-presence'
 import type {
   OwnerNotSetUpPlaceholder,
-  ProviderRateLimits,
-  RateLimitWindow
+  ProviderRateLimits
 } from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
 import {
   type UsagePercentageDisplay,
-  clampUsedPercent,
-  getDisplayedUsagePercentage
+  clampUsedPercent
 } from '../../../../../shared/agent-usage/display/usage-percentage-display'
 import type { StatusBarUsageMode } from '../../../../../shared/status-bar/status-bar-usage-mode'
 import { formatCurrencyAmount } from '../../../../../shared/agent-usage/display/currency-format'
 import { formatCreditCount } from '../../../../../shared/agent-usage/display/credit-count-format'
 import { ProviderIcon } from './provider-usage-panel'
 import { USAGE_WARNING_PERCENT } from './usage-health-tone'
-import { UsageBar } from './usage-meter'
+import { StatusBarWindowLabel, StatusBarWindowMeter } from './status-bar-usage-window'
 import { getOwnerNotSetUpLabelParts } from '../../../../../shared/agent-usage/status-copy/owner-not-set-up-copy'
 import {
   getProviderUsageErrorMessage,
@@ -28,7 +26,7 @@ import {
 } from '../../../../../shared/agent-usage/status-copy/usage-error-copy'
 import { getTightestUsageSection, getUsageHeadlineSection } from './usage-headline-sections'
 import { getProviderDisplayName } from '../../../../../shared/agent-usage/display/usage-provider-windows'
-import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-percentage-label'
+import { formatUsagePercentageLabel } from './usage-percentage-label'
 import { translate } from '@/i18n/i18n'
 import { useTranslate, useIntlLocale, type Translate } from '@/i18n/use-translate'
 import { getStatusBarUsageSections } from '../composition/status-bar-usage-sections'
@@ -39,65 +37,6 @@ import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCo
 import { useNow } from '@/lib/window-activity/use-now'
 
 const CALM_STALE_USAGE_MAX_AGE_MS = 30 * 60_000
-
-function MiniBar({
-  usedPct,
-  display
-}: {
-  usedPct: number
-  display: UsagePercentageDisplay
-}): React.JSX.Element {
-  // Why plain: usage is colored only inside a provider's details card, never in the status bar.
-  return <UsageBar usedPercent={usedPct} display={display} className="h-[6px] w-[48px] shrink-0" />
-}
-
-function WindowLabel({
-  w,
-  label,
-  display,
-  showLabel = true,
-  labelFirst = false,
-  compact = false
-}: {
-  w: RateLimitWindow
-  label: string
-  display: UsagePercentageDisplay
-  showLabel?: boolean
-  labelFirst?: boolean
-  /** Compact bar: a bright number with a smaller, dimmer unit. */
-  compact?: boolean
-}): React.JSX.Element {
-  const t = useTranslate()
-  const text = formatBareUsagePercentage(w.usedPercent, display, t)
-  if (compact) {
-    const value = String(getDisplayedUsagePercentage(w.usedPercent, display))
-    const at = text.indexOf(value)
-    const unit = (part: string) =>
-      part.trim() ? <span className="text-[0.82em] opacity-60">{part}</span> : part
-    return (
-      <span className="tabular-nums">
-        {showLabel && labelFirst ? <span className="text-foreground/50">{`${label} `}</span> : ''}
-        {at === -1 ? (
-          <span className="font-semibold text-foreground">{text}</span>
-        ) : (
-          <span className="font-semibold text-foreground">
-            {unit(text.slice(0, at))}
-            {value}
-            {unit(text.slice(at + value.length))}
-          </span>
-        )}
-        {showLabel && !labelFirst ? <span className="text-foreground/50">{` ${label}`}</span> : ''}
-      </span>
-    )
-  }
-  return (
-    <span className="tabular-nums">
-      {showLabel && labelFirst ? `${label} ` : ''}
-      {text}
-      {showLabel && !labelFirst ? ` ${label}` : ''}
-    </span>
-  )
-}
 
 // Share badge markup and data detection between the roster trigger and provider details.
 export function ProviderLetterBadge({ p }: { p: ProviderRateLimits }): React.JSX.Element {
@@ -311,11 +250,15 @@ export function ProviderSegment({
       ? []
       : template && p
         ? [p.session?.resetsAt, p.weekly?.resetsAt, p.fableWeekly?.resetsAt, p.monthly?.resetsAt]
-        : mode === 'verbose'
-          ? groupedBuckets
-              .filter((bucket) => clampUsedPercent(bucket.usedPercent) >= USAGE_WARNING_PERCENT)
-              .map((bucket) => bucket.resetsAt)
-          : []
+        : sections
+            .filter(
+              ({ window }) =>
+                !compact ||
+                (mode === 'verbose' &&
+                  isGroupedUsagePool(window) &&
+                  clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
+            )
+            .map(({ window }) => window.resetsAt)
   )
 
   const compactBar = mode === 'compact'
@@ -392,32 +335,54 @@ export function ProviderSegment({
       title={compactTitle}
     >
       {icon}
-      {!template && mode === 'verbose' && tightest && !compact ? (
-        <MiniBar usedPct={clampUsedPercent(tightest.window.usedPercent)} display={display} />
-      ) : null}
       {template ? (
         <CustomUsageText template={template} limits={p} display={display} now={now} />
       ) : showGroupedPools ? (
-        <GroupedPoolUsage
-          visibleBuckets={groupedBuckets}
-          allBuckets={p.buckets ?? []}
-          display={display}
-          now={now}
-        />
+        <>
+          {tightest && !compact ? (
+            <StatusBarWindowMeter
+              window={tightest.window}
+              label={tightest.label}
+              display={display}
+              now={now}
+            />
+          ) : null}
+          <GroupedPoolUsage
+            visibleBuckets={groupedBuckets}
+            allBuckets={p.buckets ?? []}
+            display={display}
+            now={now}
+          />
+        </>
       ) : (
         sections.map((section, index) => (
           <React.Fragment key={section.key}>
             {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-            <WindowLabel
-              w={section.window}
-              label={
-                mode === 'compact' ? section.label : formatStatusBarSectionLabel(p, section, now, t)
-              }
-              display={display}
-              showLabel={showLabels && section.label !== '' && !(compactBar && section.labelFirst)}
-              labelFirst={section.labelFirst}
-              compact={compactBar}
-            />
+            <span className="inline-flex items-center gap-1">
+              {!compact ? (
+                <StatusBarWindowMeter
+                  window={section.window}
+                  label={section.label}
+                  compact={compactBar}
+                  display={display}
+                  now={now}
+                />
+              ) : null}
+              <StatusBarWindowLabel
+                w={section.window}
+                label={
+                  mode === 'compact'
+                    ? section.label
+                    : formatStatusBarSectionLabel(p, section, now, t)
+                }
+                display={display}
+                showLabel={
+                  showLabels && section.label !== '' && !(compactBar && section.labelFirst)
+                }
+                labelFirst={section.labelFirst}
+                compact={compactBar}
+              />
+            </span>
           </React.Fragment>
         ))
       )}

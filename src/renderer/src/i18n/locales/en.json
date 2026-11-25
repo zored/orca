@@ -26610,6 +26610,14 @@
     "agentDriving": "An agent is using this page",
     "controlledByHost": "Controlled by {{host}}"
   },
+  "statusBar": {
+    "visibleProviders": "Visible providers",
+    "usagePace": {
+      "onPace": "On pace",
+      "ahead": "{{points}} percentage points ahead of pace",
+      "behind": "{{points}} percentage points behind pace"
+    }
+  },
   "nativeChat": {
     "tldr": {
       "showFull": "Show full reply",
