@@ -9,6 +9,8 @@
         "description": "System follows this device’s light or dark setting."
       },
       "title": "Appearance",
+      "largerListRows": "Larger list rows",
+      "largerListRowsSaveFailed": "Could not save list row size",
       "language": {
         "systemWithCurrent": "System ({{language}})",
         "heading": "LANGUAGE",

@@ -2,6 +2,7 @@ import { Bell, ChevronDown, ChevronRight, Eye, EyeOff, X } from 'lucide-react-na
 import { MobileForkMarkedName } from '../session/fork/MobileForkMarkedName'
 import { mobileForkAccessibleName } from '../session/fork/mobile-fork-marked-name'
 import { Fragment, memo, useCallback, useState } from 'react'
+import { useLargerListRows } from './larger-list-rows-preference'
 import { Alert, Pressable, Text, View } from 'react-native'
 import { formatAgentTypeLabel } from '../../../src/shared/agent-status/presentation/agent-type-label'
 import { AgentSpinner, type AgentSpinnerStatus } from './presentation/AgentSpinner'
@@ -158,6 +159,7 @@ const MobileAgentListRow = memo(function MobileAgentListRow(props: {
 }) {
   const t = useMobileTranslation()
   useMobileColorScheme()
+  const largerRows = useLargerListRows()
   const { row } = props
   const { agent } = row.entry
   const desktop = useHostDisplay(props.host).title
@@ -281,7 +283,13 @@ const MobileAgentListRow = memo(function MobileAgentListRow(props: {
           >
             <AgentSpinner status={GLYPH_STATUS[row.dotState]} />
           </View>
-          <View style={[styles.text, row.stale && homeListStyles.rowDisabled]}>
+          <View
+            style={[
+              styles.text,
+              largerRows && styles.roomyText,
+              row.stale && homeListStyles.rowDisabled
+            ]}
+          >
             <View style={styles.titleLine}>
               <Text style={[styles.title, unread && styles.titleUnread]} numberOfLines={1}>
                 {row.forked ? <MobileForkMarkedName name={title} /> : title}
@@ -344,6 +352,7 @@ const MobileAgentListRow = memo(function MobileAgentListRow(props: {
 
 const styles = themedStyleSheet(() => ({
   text: { flex: 1, minWidth: 0, paddingTop: 9, paddingBottom: 10, paddingRight: 14, gap: 3 },
+  roomyText: { paddingTop: spacing.lg, paddingBottom: spacing.lg },
   titleLine: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
   // Opaque so a swipe's actions stay hidden until the row slides off them.
   row: { backgroundColor: colors.bgPanel },

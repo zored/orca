@@ -1,4 +1,7 @@
 import { useRouter } from 'expo-router'
+import { Alert } from 'react-native'
+import { MobileSwitch } from '../components/controls/MobileSwitch'
+import { setLargerListRows, useLargerListRows } from '../agents/larger-list-rows-preference'
 import { ListRow } from '../components/list/ListGroup'
 import { useMobileColorScheme } from '../theme/use-mobile-color-scheme'
 import {
@@ -37,6 +40,8 @@ export default function AppearanceSettingsScreen() {
   const router = useRouter()
   const preference = useMobileAppearancePreference()
   const usageDisplay = useUsagePercentageDisplay()
+  const largerRows = useLargerListRows()
+  const largerRowsLabel = t('settings.appearance.largerListRows', 'Larger list rows')
 
   return (
     <SettingsScreen
@@ -80,6 +85,28 @@ export default function AppearanceSettingsScreen() {
             onPress={() => setUsagePercentageDisplay(value)}
           />
         ))}
+      </SettingsSection>
+
+      <SettingsSection>
+        <ListRow
+          title={largerRowsLabel}
+          accessory={
+            <MobileSwitch
+              accessibilityLabel={largerRowsLabel}
+              value={largerRows}
+              onValueChange={(next) => {
+                void setLargerListRows(next).catch(() => {
+                  Alert.alert(
+                    t(
+                      'settings.appearance.largerListRowsSaveFailed',
+                      'Could not save list row size'
+                    )
+                  )
+                })
+              }}
+            />
+          }
+        />
       </SettingsSection>
 
       <UiLanguageSettingsSection />
