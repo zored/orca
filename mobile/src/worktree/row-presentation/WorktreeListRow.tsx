@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native'
 import type { MobileRenderableRepoIcon } from '../../host-screen/host-screen-reply-schema'
 import { triggerMediumImpact } from '../../platform/haptics/haptics'
 import { colors, spacing } from '../../theme/mobile-theme'
+import { useLargerListRows } from '../../agents/larger-list-rows-preference'
 import { useMobileColorScheme } from '../../theme/use-mobile-color-scheme'
 import { useMobileTranslation } from '../../i18n/use-mobile-translation'
 import type {
@@ -81,6 +82,7 @@ function WorktreeListRowComponent({
 }: Props) {
   useMobileColorScheme()
   const t = useMobileTranslation()
+  const largerRows = useLargerListRows()
   // Only a bot's worker line reads the clock here; other rows leave ticking to their agent list.
   const now = useNow(30_000, Boolean(view.botWorkspace))
   // A bot worker line shows its own agents' state.
@@ -174,6 +176,7 @@ function WorktreeListRowComponent({
     <Pressable
       style={({ pressed }) => [
         styles.worktreeRow,
+        largerRows && { paddingVertical: spacing.lg, minHeight: 48 },
         indent > 0 && { paddingLeft: spacing.lg + indent },
         item.isActive && styles.worktreeRowActive,
         view.dimmed && styles.worktreeRowDimmed,
