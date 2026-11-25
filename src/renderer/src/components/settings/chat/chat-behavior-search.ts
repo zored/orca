@@ -74,6 +74,15 @@ export const getChatBehaviorEntriesByKey = createLocalizedCatalog(() => ({
       ...translateSearchKeyword('components.settings.nativeChat.queueSearchSteer', 'steer')
     ]
   },
+  collapseTldr: {
+    targetSectionId: 'chat-collapse-tldr',
+    title: translate('components.settings.nativeChat.collapseTldr', 'Collapse replies with a TLDR'),
+    description: translate(
+      'components.settings.nativeChat.collapseTldrDescription',
+      'Show the TLDR first. Expand the reply to read the rest.'
+    ),
+    keywords: []
+  },
   scrollToLatestOnSend: {
     targetSectionId: 'chat-scroll-to-latest-on-send',
     title: translate(

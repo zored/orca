@@ -256,7 +256,6 @@ function MobileNativeChatMessageImpl({
       )
     )
   }
-  const isChatTurn = message.role === 'user' || message.role === 'assistant'
   // Paced prose calls this from its own renders too, so the key must not depend on earlier calls.
   const proseRow = (block: Chat.NativeChatBlock, key: number, text: string, revealing = false) => {
     const textKey = `${message.id}:text:${key}`
@@ -352,13 +351,14 @@ function MobileNativeChatMessageImpl({
                   rowKey={message.id}
                   blocks={drawnProse}
                   growingBlock={growingBlock}
+                  fullContentStatus={showFull}
+                  working={activeTurnIsWorking === true}
                   paced={message.role === 'assistant'}
                   fontScale={fontScale}
                 >
                   {(block, index, shown) => proseRow(block, index, shown.text, shown.revealing)}
                 </MobileNativeChatAnswerProse>
               )}
-              {isUser ? null : showFull}
             </>
           )}
           {(isReasoning ? [] : backgroundTasks).map((task) => (
@@ -399,7 +399,7 @@ function MobileNativeChatMessageImpl({
         </Content>
         {isUser ? <Marks.MobileNativeChatUserMessageNotes message={message} /> : null}
         {unsentNotice ? <Text style={styles.unsentNotice}>{unsentNotice}</Text> : null}
-        {isChatTurn && !agentFrom && !withoutMeta ? (
+        {(message.role === 'user' || message.role === 'assistant') && !agentFrom && !withoutMeta ? (
           <MobileNativeChatMessageMeta
             message={message}
             rowKey={rowKey ?? message.id}
