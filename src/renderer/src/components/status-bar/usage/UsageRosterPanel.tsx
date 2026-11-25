@@ -30,6 +30,7 @@ import {
 import { formatBareUsagePercentage, formatScopedUsageTitle } from './usage-percentage-label'
 import { getUsageHealthTone } from './usage-health-tone'
 import { UsageBar, UsageDisplayToggle, UsageValue } from './usage-meter'
+import { usagePace, usagePaceLabel } from './usage-pace'
 
 type ProviderId = ProviderRateLimits['provider']
 
@@ -37,23 +38,29 @@ function DetailMetric({
   section,
   label,
   display,
-  title
+  title,
+  now
 }: {
   section: UsageSection
   label: string
   display: UsagePercentageDisplay
   title?: string
+  now: number
 }): React.JSX.Element {
+  const t = useTranslate()
+  const pace = usagePace(section.window, now)
+  const paceLabel = usagePaceLabel(section.window.usedPercent, pace, t)
   return (
     <span
       data-usage-window={section.label}
-      title={title}
+      title={[title, paceLabel].filter(Boolean).join(' · ') || undefined}
       className="flex shrink-0 items-center gap-1.5"
     >
       <span className="text-[10px] text-muted-foreground">{label}</span>
       <UsageBar
         usedPercent={section.window.usedPercent}
         display={display}
+        paceUsedPercent={pace}
         className="h-[5px] w-7"
       />
       <UsageValue
@@ -61,6 +68,7 @@ function DetailMetric({
         display={display}
         className="text-[11px]"
       />
+      {paceLabel ? <span className="sr-only">{paceLabel}</span> : null}
     </span>
   )
 }
@@ -230,6 +238,7 @@ export function UsageRow({
                 key={section.label}
                 section={section}
                 label={label}
+                now={now}
                 display={display}
                 title={formatScopedUsageTitle(p, { ...section, label }, display, t)}
               />

@@ -3,6 +3,10 @@ import { RefreshCw } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuContent,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
@@ -31,6 +35,9 @@ import {
 import { useUsageRowWidths } from './composition/use-usage-row-widths'
 import { UsageUnitLabel, usageChipShowsPercentage } from './usage/usage-unit-label'
 import type { useStatusBarController } from './composition/use-status-bar-controller'
+import { STATUS_BAR_USAGE_PROVIDERS } from '../../../../shared/status-bar/status-bar-usage-format'
+import { getProviderDisplayName } from '../../../../shared/agent-usage/display/usage-provider-windows'
+import { isStatusBarItemAvailable } from './composition/status-bar-agent-gating'
 import { isOwnerNotSetUpPlaceholder } from './usage/owner-usage-rate-limits'
 
 type StatusBarController = NonNullable<ReturnType<typeof useStatusBarController>>
@@ -48,6 +55,7 @@ export function StatusBarUsageArea({
     anyFetching,
     anyVisible,
     canSignInFromUsageRow,
+    detectedAgentIds,
     handleManageAccounts,
     handleOpenProviderAccounts,
     handleRefresh,
@@ -62,6 +70,8 @@ export function StatusBarUsageArea({
     setStatusBarUsageMode,
     showEmptyUsageCta,
     statusBarUsageMode,
+    statusBarItems,
+    toggleStatusBarItem,
     usageMenuFocusHandoff,
     usageMenuOpen,
     usagePercentageDisplay
@@ -211,6 +221,25 @@ export function StatusBarUsageArea({
                     )
                   }}
                 />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    {t('statusBar.visibleProviders', 'Visible providers')}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent {...STATUS_BAR_CONTEXT_MENU_EXEMPT_PROPS}>
+                    {STATUS_BAR_USAGE_PROVIDERS.filter((provider) =>
+                      isStatusBarItemAvailable(provider, detectedAgentIds)
+                    ).map((provider) => (
+                      <DropdownMenuCheckboxItem
+                        key={provider}
+                        checked={statusBarItems.includes(provider)}
+                        onCheckedChange={() => toggleStatusBarItem(provider)}
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        {getProviderDisplayName(provider)}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
           </StatusBarUsageChangeNotices>

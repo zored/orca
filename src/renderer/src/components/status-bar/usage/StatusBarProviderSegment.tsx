@@ -6,8 +6,7 @@ import React from 'react'
 import { useSectionOnScreen } from '../../right-sidebar/source-control/panel/section-viewport-presence'
 import type {
   OwnerNotSetUpPlaceholder,
-  ProviderRateLimits,
-  RateLimitWindow
+  ProviderRateLimits
 } from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
 import {
   type UsagePercentageDisplay,
@@ -18,7 +17,7 @@ import { formatCurrencyAmount } from '../../../../../shared/agent-usage/display/
 import { formatCreditCount } from '../../../../../shared/agent-usage/display/credit-count-format'
 import { ProviderIcon } from './provider-usage-panel'
 import { USAGE_WARNING_PERCENT } from './usage-health-tone'
-import { UsageBar } from './usage-meter'
+import { StatusBarWindowLabel, StatusBarWindowMeter } from './status-bar-usage-window'
 import { getOwnerNotSetUpLabelParts } from '../../../../../shared/agent-usage/status-copy/owner-not-set-up-copy'
 import {
   getProviderUsageErrorMessage,
@@ -27,7 +26,7 @@ import {
 } from '../../../../../shared/agent-usage/status-copy/usage-error-copy'
 import { getTightestUsageSection, getUsageHeadlineSection } from './usage-headline-sections'
 import { getProviderDisplayName } from '../../../../../shared/agent-usage/display/usage-provider-windows'
-import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-percentage-label'
+import { formatUsagePercentageLabel } from './usage-percentage-label'
 import { translate } from '@/i18n/i18n'
 import { useTranslate, useIntlLocale, type Translate } from '@/i18n/use-translate'
 import { getStatusBarUsageSections } from '../composition/status-bar-usage-sections'
@@ -38,40 +37,6 @@ import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCo
 import { useNow } from '@/lib/window-activity/use-now'
 
 const CALM_STALE_USAGE_MAX_AGE_MS = 30 * 60_000
-
-function MiniBar({
-  usedPct,
-  display
-}: {
-  usedPct: number
-  display: UsagePercentageDisplay
-}): React.JSX.Element {
-  // Why plain: usage is colored only inside a provider's details card, never in the status bar.
-  return <UsageBar usedPercent={usedPct} display={display} className="h-[6px] w-[48px] shrink-0" />
-}
-
-function WindowLabel({
-  w,
-  label,
-  display,
-  showLabel = true,
-  labelFirst = false
-}: {
-  w: RateLimitWindow
-  label: string
-  display: UsagePercentageDisplay
-  showLabel?: boolean
-  labelFirst?: boolean
-}): React.JSX.Element {
-  const t = useTranslate()
-  return (
-    <span className="tabular-nums">
-      {showLabel && labelFirst ? `${label} ` : ''}
-      {formatBareUsagePercentage(w.usedPercent, display, t)}
-      {showLabel && !labelFirst ? ` ${label}` : ''}
-    </span>
-  )
-}
 
 // Share badge markup and data detection between the roster trigger and provider details.
 export function ProviderLetterBadge({ p }: { p: ProviderRateLimits }): React.JSX.Element {
@@ -287,11 +252,15 @@ export function ProviderSegment({
       ? []
       : template && p
         ? [p.session?.resetsAt, p.weekly?.resetsAt, p.fableWeekly?.resetsAt, p.monthly?.resetsAt]
-        : showLabels
-          ? groupedBuckets
-              .filter((bucket) => clampUsedPercent(bucket.usedPercent) >= USAGE_WARNING_PERCENT)
-              .map((bucket) => bucket.resetsAt)
-          : []
+        : sections
+            .filter(
+              ({ window }) =>
+                !compact ||
+                (mode === 'verbose' &&
+                  isGroupedUsagePool(window) &&
+                  clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
+            )
+            .map(({ window }) => window.resetsAt)
   )
 
   // Why static: unfocused windows never poll, so a pending chip's pulse would redraw the compositor indefinitely.
@@ -343,31 +312,61 @@ export function ProviderSegment({
     mode === 'verbose' && groupedBuckets.length > 0 && groupedBuckets.length === sections.length
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <ProviderIcon provider={provider} />
-      {!template && mode === 'verbose' && tightest && !compact ? (
-        <MiniBar usedPct={clampUsedPercent(tightest.window.usedPercent)} display={display} />
-      ) : null}
+    <span
+      className={
+        compactBar ? 'inline-flex items-center gap-[5px]' : 'inline-flex items-center gap-1.5'
+      }
+      title={compactTitle}
+    >
+      {icon}
       {template ? (
         <CustomUsageText template={template} limits={p} display={display} now={now} />
       ) : showGroupedPools ? (
-        <GroupedPoolUsage
-          visibleBuckets={groupedBuckets}
-          allBuckets={p.buckets ?? []}
-          display={display}
-          now={now}
-        />
+        <>
+          {tightest && !compact ? (
+            <StatusBarWindowMeter
+              window={tightest.window}
+              label={tightest.label}
+              display={display}
+              now={now}
+            />
+          ) : null}
+          <GroupedPoolUsage
+            visibleBuckets={groupedBuckets}
+            allBuckets={p.buckets ?? []}
+            display={display}
+            now={now}
+          />
+        </>
       ) : (
         sections.map((section, index) => (
           <React.Fragment key={section.key}>
             {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-            <WindowLabel
-              w={section.window}
-              label={formatStatusBarSectionLabel(p, section, now, t)}
-              display={display}
-              showLabel={showLabels}
-              labelFirst={section.labelFirst}
-            />
+            <span className="inline-flex items-center gap-1">
+              {!compact ? (
+                <StatusBarWindowMeter
+                  window={section.window}
+                  label={section.label}
+                  compact={compactBar}
+                  display={display}
+                  now={now}
+                />
+              ) : null}
+              <StatusBarWindowLabel
+                w={section.window}
+                label={
+                  mode === 'compact'
+                    ? section.label
+                    : formatStatusBarSectionLabel(p, section, now, t)
+                }
+                display={display}
+                showLabel={
+                  showLabels && section.label !== '' && !(compactBar && section.labelFirst)
+                }
+                labelFirst={section.labelFirst}
+                compact={compactBar}
+              />
+            </span>
           </React.Fragment>
         ))
       )}

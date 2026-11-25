@@ -21,24 +21,45 @@ export function UsageBar({
   usedPercent,
   display,
   tone = 'plain',
+  paceUsedPercent,
   className,
   trackClassName = 'bg-muted'
 }: {
   usedPercent: number
   display: UsagePercentageDisplay
   tone?: UsageBarTone
+  paceUsedPercent?: number
   className?: string
   trackClassName?: string
 }): React.JSX.Element {
+  const pace =
+    paceUsedPercent === undefined
+      ? undefined
+      : display === 'remaining'
+        ? 100 - paceUsedPercent
+        : paceUsedPercent
   return (
     <span
       data-usage-bar
-      className={cn('block overflow-hidden rounded-full', trackClassName, className)}
+      className={cn('relative block overflow-hidden rounded-full', trackClassName, className)}
     >
+      {pace !== undefined ? (
+        <span
+          className="absolute inset-y-0 start-0 bg-muted-foreground/15"
+          style={{ width: `${pace}%` }}
+        />
+      ) : null}
       <span
-        className={`block h-full rounded-full transition-all duration-300 ${usageBarClass(usedPercent, tone)}`}
+        className={`relative block h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none ${usageBarClass(usedPercent, tone)}`}
         style={{ width: `${getDisplayedUsagePercentage(usedPercent, display)}%` }}
       />
+      {pace !== undefined ? (
+        <span
+          data-usage-pace
+          className="absolute inset-y-0 w-px bg-foreground"
+          style={{ insetInlineStart: `clamp(0px, ${pace}%, calc(100% - 1px))` }}
+        />
+      ) : null}
     </span>
   )
 }

@@ -2,7 +2,7 @@ import type { ProviderRateLimits } from '../agent-usage/rate-limits/rate-limit-t
 
 export type StatusBarUsageProvider = ProviderRateLimits['provider']
 
-const STATUS_BAR_USAGE_PROVIDERS: ReadonlySet<string> = new Set<StatusBarUsageProvider>([
+export const STATUS_BAR_USAGE_PROVIDERS: readonly StatusBarUsageProvider[] = [
   'claude',
   'codex',
   'gemini',
@@ -14,7 +14,7 @@ const STATUS_BAR_USAGE_PROVIDERS: ReadonlySet<string> = new Set<StatusBarUsagePr
   'cursor',
   'zcode',
   'muse'
-])
+]
 
 /** User-defined footer usage text. Empty `template` means Orca's built-in rendering. */
 export type StatusBarUsageFormat = {
@@ -31,7 +31,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isStatusBarUsageProvider(value: string): value is StatusBarUsageProvider {
-  return STATUS_BAR_USAGE_PROVIDERS.has(value)
+  return STATUS_BAR_USAGE_PROVIDERS.some((provider) => provider === value)
 }
 
 /** Coerces persisted/RPC input into a valid format, dropping unknown providers and non-string overrides. */
