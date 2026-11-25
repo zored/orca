@@ -1,4 +1,7 @@
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
+import { useAppStore } from '@/store'
+import { findNativeChatTldr } from '../../../../../../shared/native-chat/transcript/folding/native-chat-tldr'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/class-names'
 import { quietBotAnswer } from '../../../../../../shared/bot-quiet-result'
 import { isRootAgentJournalItem } from '../../../../../../shared/agent-session/journal/agent-session-journal-producer'
@@ -78,6 +81,13 @@ export function NativeChatAssistantMessageRow({
     inActingTurn: props.inActingTurn === true
   })
   const shownWords = withLegacyNativeChatIdeasAsList(quiet.words)
+  const collapseTldr = useAppStore((state) => state.settings?.nativeChatCollapseTldr === true)
+  const [expandedMessageId, setExpandedMessageId] = useState<string | null>(null)
+  const tldr =
+    collapseTldr && message.role === 'assistant' && !activeTurnIsWorking
+      ? findNativeChatTldr(shownWords)
+      : undefined
+  const folded = tldr !== undefined && expandedMessageId !== message.id
   // Hide controls on system asides and the still-working frontier, where more content may arrive. In
   // a turn they belong to its holder, which may draw only images when folding hid its words.
   const showControls =
@@ -104,24 +114,39 @@ export function NativeChatAssistantMessageRow({
         isSystem && 'text-xs text-chat-foreground-faint'
       )}
     >
-      <NativeChatImageAttachments
-        blocks={prose}
-        runtimeContext={runtimeContext}
-        enablePreview={runtimeContext !== undefined}
-      />
+      {!folded ? (
+        <NativeChatImageAttachments
+          blocks={prose}
+          runtimeContext={runtimeContext}
+          enablePreview={runtimeContext !== undefined}
+        />
+      ) : null}
       {shownWords ? (
         <NativeChatPacedMarkdown
           rowKey={message.id}
-          content={shownWords}
+          content={folded ? tldr : shownWords}
           variant="document"
           className="text-sm"
           renderCodeBlock={isSystem ? NativeChatPlainCodeBlock : NativeChatCodeBlock}
           linkifyFilePaths
           {...(isSystem ? {} : NATIVE_CHAT_QUOTE_SOURCE_PROPS)}
-          visualMessageId={message.role === 'assistant' ? message.id : undefined}
+          visualMessageId={!folded && message.role === 'assistant' ? message.id : undefined}
           // Only the live turn’s prose frontier can be mid-sentence; structured rows have no per-row streaming flag.
           streaming={streaming}
         />
+      ) : null}
+      {tldr !== undefined ? (
+        <Button
+          type="button"
+          variant="disclosure"
+          size="xs"
+          aria-expanded={!folded}
+          onClick={() => setExpandedMessageId(folded ? message.id : null)}
+        >
+          {folded
+            ? t('nativeChat.tldr.showFull', 'Show full reply')
+            : t('nativeChat.tldr.showLess', 'Show less')}
+        </Button>
       ) : null}
       {quiet.nothingToReport ? (
         <p className="text-xs text-chat-foreground-faint">
@@ -134,7 +159,7 @@ export function NativeChatAssistantMessageRow({
           <NativeChatToolRun {...toolRun} />
         </NativeChatGalleryMessageContext>
       ) : null}
-      {showControls ? (
+      {showControls && !folded ? (
         <NativeChatAgentControls
           markdown={words}
           timestamp={message.timestamp}

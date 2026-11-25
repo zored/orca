@@ -17,6 +17,7 @@ export type NativeChatTextSettings = {
   size: number
   font: NativeChatFont
   lineSpacing: NativeChatLineSpacing
+  collapseTldr?: boolean
 }
 
 export const NATIVE_CHAT_TEXT_SIZE_MIN = 11
@@ -48,7 +49,7 @@ export function clampNativeChatTextSize(size: number): number {
 }
 
 // Unknown fields fall back one by one, so a value from a newer build keeps what this one reads.
-function parseSettings(raw: string | null): NativeChatTextSettings | null {
+function parseSettings(raw: string | null): Snapshot | null {
   if (raw === null) {
     return null
   }
@@ -66,12 +67,16 @@ function parseSettings(raw: string | null): NativeChatTextSettings | null {
   const lineSpacing = 'lineSpacing' in parsed ? parsed.lineSpacing : undefined
   const fallback = defaultNativeChatTextSettings()
   return {
-    size: typeof size === 'number' ? clampNativeChatTextSize(size) : fallback.size,
-    font: font === 'system' || font === 'serif' || font === 'mono' ? font : fallback.font,
-    lineSpacing:
-      lineSpacing === 'compact' || lineSpacing === 'default' || lineSpacing === 'relaxed'
-        ? lineSpacing
-        : fallback.lineSpacing
+    settings: {
+      size: typeof size === 'number' ? clampNativeChatTextSize(size) : fallback.size,
+      font: font === 'system' || font === 'serif' || font === 'mono' ? font : fallback.font,
+      lineSpacing:
+        lineSpacing === 'compact' || lineSpacing === 'default' || lineSpacing === 'relaxed'
+          ? lineSpacing
+          : fallback.lineSpacing,
+      ...('collapseTldr' in parsed && parsed.collapseTldr === true ? { collapseTldr: true } : {})
+    },
+    stored: 'size' in parsed || 'font' in parsed || 'lineSpacing' in parsed
   }
 }
 
@@ -88,15 +93,16 @@ let writes: Promise<void> = Promise.resolve()
 let watchingScreen = false
 const listeners = new Set<() => void>()
 
-function adopt(settings: NativeChatTextSettings | null): void {
-  const next = settings ?? defaultNativeChatTextSettings()
-  const stored = settings !== null
+function adopt(saved: Snapshot | null): void {
+  const next = saved?.settings ?? defaultNativeChatTextSettings()
+  const stored = saved?.stored ?? false
   const held = snapshot.settings
   if (
     snapshot.stored === stored &&
     held.size === next.size &&
     held.font === next.font &&
-    held.lineSpacing === next.lineSpacing
+    held.lineSpacing === next.lineSpacing &&
+    held.collapseTldr === next.collapseTldr
   ) {
     return
   }
@@ -114,7 +120,13 @@ function watchScreen(): void {
   watchingScreen = true
   Dimensions.addEventListener('change', () => {
     if (!snapshot.stored) {
-      adopt(null)
+      adopt({
+        settings: {
+          ...defaultNativeChatTextSettings(),
+          collapseTldr: snapshot.settings.collapseTldr
+        },
+        stored: false
+      })
     }
   })
 }
@@ -147,13 +159,18 @@ const hydration = reloadNativeChatTextSettings().then(() => {
   hydrated = true
 })
 
-function persist(settings: NativeChatTextSettings | null): Promise<void> {
+function persist(next: Snapshot): Promise<void> {
   changeCount += 1
   const change = changeCount
-  adopt(settings)
+  adopt(next)
+  const raw = next.stored
+    ? next.settings
+    : next.settings.collapseTldr
+      ? { collapseTldr: true }
+      : null
   // Queue writes so a slower earlier save cannot land after a newer one.
   const write = writes.then(() =>
-    persistMirrored(NATIVE_CHAT_TEXT_KEY, settings === null ? null : JSON.stringify(settings))
+    persistMirrored(NATIVE_CHAT_TEXT_KEY, raw === null ? null : JSON.stringify(raw))
   )
   // A failed save shows what storage still holds, unless a newer change is on its way.
   writes = write.catch(() => {
@@ -167,13 +184,28 @@ function persist(settings: NativeChatTextSettings | null): Promise<void> {
 export function updateNativeChatTextSettings(
   change: Partial<NativeChatTextSettings>
 ): Promise<void> {
-  return hydrated
-    ? persist({ ...snapshot.settings, ...change })
-    : hydration.then(() => persist({ ...snapshot.settings, ...change }))
+  const save = () =>
+    persist({
+      settings: { ...snapshot.settings, ...change },
+      stored:
+        snapshot.stored ||
+        change.size !== undefined ||
+        change.font !== undefined ||
+        change.lineSpacing !== undefined
+    })
+  return hydrated ? save() : hydration.then(save)
 }
 
 export function resetNativeChatTextSettings(): Promise<void> {
-  return persist(null)
+  return hydrated
+    ? persist({
+        settings: {
+          ...defaultNativeChatTextSettings(),
+          collapseTldr: snapshot.settings.collapseTldr
+        },
+        stored: false
+      })
+    : hydration.then(resetNativeChatTextSettings)
 }
 
 function subscribe(listener: () => void): () => void {

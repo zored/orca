@@ -63,6 +63,7 @@ export function ChatBehaviorSetting({
     ...(hostContinuesUsageLimits ? [entries.autoContinueAfterUsageLimit] : []),
     ...(hostQueuesMessages ? [entries.queueFollowUps] : []),
     entries.scrollToLatestOnSend,
+    entries.collapseTldr,
     entries.markNewMessages,
     entries.linkPreviews,
     entries.composerSpellcheck,
@@ -162,6 +163,22 @@ export function ChatBehaviorSetting({
           checked={scrollToLatestOnSend}
           ariaLabel={entries.scrollToLatestOnSend.title}
           onChange={() => updateSettings({ nativeChatScrollToLatestOnSend: !scrollToLatestOnSend })}
+        />
+      </SearchableSetting>
+      <SearchableSetting
+        {...entries.collapseTldr}
+        id={entries.collapseTldr.targetSectionId}
+        forceVisible={forceVisible}
+        className="max-w-none"
+      >
+        <SettingsSwitchRow
+          label={entries.collapseTldr.title}
+          description={entries.collapseTldr.description}
+          checked={settings.nativeChatCollapseTldr === true}
+          ariaLabel={entries.collapseTldr.title}
+          onChange={() =>
+            updateSettings({ nativeChatCollapseTldr: settings.nativeChatCollapseTldr !== true })
+          }
         />
       </SearchableSetting>
       <SearchableSetting

@@ -19,6 +19,9 @@ vi.mock('../messages/mobile-native-chat-message-styles', () => ({
   styles: {},
   scaledType: () => ({})
 }))
+vi.mock('../../preferences/native-chat-text-settings', () => ({
+  useNativeChatTextSettings: () => ({})
+}))
 vi.mock('./MobileNativeChatPacedProse', () => ({
   MobileNativeChatPacedProse: ({ blocks }: { blocks: NativeChatBlock[] }) =>
     createElement(

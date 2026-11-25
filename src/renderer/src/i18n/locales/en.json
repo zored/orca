@@ -23442,6 +23442,8 @@
         "inlineVisualsToggleLabel": "Toggle inline visuals",
         "followUpBehaviorCopy": "Messages sent while the agent works wait as cards until the turn ends, instead of going into the running turn. Cmd/Ctrl+Enter does the opposite for one message, and with nothing typed steers the first waiting card into the running turn. Messages with images wait as cards too.",
         "behaviorTitle": "Behavior",
+        "collapseTldr": "Collapse replies with a TLDR",
+        "collapseTldrDescription": "Show the TLDR first. Expand the reply to read the rest.",
         "resumeSearchUpdate": "update",
         "resumeSearchRelaunch": "relaunch",
         "queueSearchQueue": "queue",
@@ -26465,6 +26467,10 @@
     "controlledByHost": "Controlled by {{host}}"
   },
   "nativeChat": {
+    "tldr": {
+      "showFull": "Show full reply",
+      "showLess": "Show less"
+    },
     "linkedMessageMissing": "Couldn't find that message.",
     "math": {
       "scrollDisplayEquation": "Scroll display equation"
