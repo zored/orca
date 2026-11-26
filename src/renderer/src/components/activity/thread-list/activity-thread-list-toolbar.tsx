@@ -39,6 +39,7 @@ export function ActivityThreadListToolbar({
   resizable,
   showFilterControls,
   showOptionsMenu,
+  collapseAllButton,
   showInlineActions = true
 }: {
   activityFilterInputRef: React.RefObject<HTMLInputElement | null>
@@ -59,6 +60,7 @@ export function ActivityThreadListToolbar({
   resizable: boolean
   showFilterControls: boolean
   showOptionsMenu: boolean
+  collapseAllButton?: React.ReactNode
   showInlineActions?: boolean
 }): React.JSX.Element | null {
   const t = useTranslate()
@@ -70,7 +72,7 @@ export function ActivityThreadListToolbar({
   return (
     <>
       <div className="shrink-0 border-b border-border px-2 py-1.5">
-        <div className="flex items-center justify-end gap-1">
+        <div className="group/sidebar-header flex items-center justify-end gap-1">
           {showFilterControls ? (
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
@@ -170,6 +172,7 @@ export function ActivityThreadListToolbar({
               </TooltipContent>
             </Tooltip>
           ) : null}
+          {collapseAllButton}
           {showOptionsMenu ? (
             <ActivityThreadOptionsMenu
               groupBy={groupBy}

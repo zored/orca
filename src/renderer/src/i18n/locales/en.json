@@ -1,4 +1,10 @@
 {
+  "activity": {
+    "groups": {
+      "collapseAll": "Collapse all activity groups",
+      "expandAll": "Expand all activity groups"
+    }
+  },
   "agentLaunch": {
     "connectSsh": "Connect to this workspace’s SSH host, then try again.",
     "sshUnavailable": "Terminal launch is unavailable on this SSH host. Open a terminal in the workspace and start the agent there.",
@@ -21614,6 +21620,8 @@
       "status": {
         "responding": "Agent is responding",
         "working": "Working…",
+        "showLiveActivity": "Show live activity",
+        "hideLiveActivity": "Hide live activity",
         "stopping": "Stopping…",
         "queueAfterStop": "Queue a message to run after the stop",
         "sendAfterStop": "Send a message to run after the stop",
@@ -23443,6 +23451,8 @@
         "followUpBehaviorCopy": "Messages sent while the agent works wait as cards until the turn ends, instead of going into the running turn. Cmd/Ctrl+Enter does the opposite for one message, and with nothing typed steers the first waiting card into the running turn. Messages with images wait as cards too.",
         "behaviorTitle": "Behavior",
         "collapseTldr": "Collapse replies with a TLDR",
+        "collapseLiveActivity": "Collapse live activity",
+        "collapseLiveActivityDescription": "Show only a spinner while the agent works. Click it to see the current activity.",
         "collapseTldrDescription": "Show the TLDR first. Expand the reply to read the rest.",
         "resumeSearchUpdate": "update",
         "resumeSearchRelaunch": "relaunch",
