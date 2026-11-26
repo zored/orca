@@ -26,9 +26,9 @@ Tags `v<upstream>-robbo.<n>` mark fork builds that were run somewhere, so a serv
 can be traced back to its commit. `package.json` keeps the upstream version, and orcad builds are
 named by content hash (`0.1.0+<hash>`), so the tag is the only link between the two.
 
-| Tag                | Commit        | orcad build                              | Where it runs                                    |
-| ------------------ | ------------- | ---------------------------------------- | ------------------------------------------------ |
-| `v1.4.272-robbo.1` | `c93d142d0ad` | `0.1.0+be1818aabe72` (linux-arm64-glibc) | SSH host `kaleidoscope-ide` (pending activation) |
+| Tag                | Commit        | orcad build                              | Where it runs                                                                         |
+| ------------------ | ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `v1.4.272-robbo.1` | `c93d142d0ad` | `0.1.0+be1818aabe72` (linux-arm64-glibc) | SSH host `kaleidoscope-ide` (active since 2026-11-26, rollback: `0.1.0+fe3ef7f521bd`) |
 
 ## Remote orcad from the fork
 
