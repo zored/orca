@@ -19,6 +19,8 @@ import { ProviderIcon } from './provider-usage-panel'
 import { USAGE_WARNING_PERCENT } from './usage-health-tone'
 import {
   ClaudeStatusBarMeter,
+  getStatusBarResetTimes,
+  StatusBarResetCountdowns,
   StatusBarWindowLabel,
   StatusBarWindowMeter
 } from './status-bar-usage-window'
@@ -213,6 +215,7 @@ type ProviderSegmentProps = {
   display: UsagePercentageDisplay
   mode?: StatusBarUsageMode
   countdownActive?: boolean
+  showResetCountdowns?: boolean
 }
 
 /** A chip in the clipping status bar row: clipped chips stop their countdown wakes. */
@@ -220,7 +223,7 @@ export function ClippedRowProviderSegment(props: ProviderSegmentProps): React.JS
   const [ref, onScreen] = useSectionOnScreen('viewport')
   return (
     <span ref={ref} className="inline-flex items-center self-stretch">
-      <ProviderSegment {...props} countdownActive={onScreen} />
+      <ProviderSegment {...props} countdownActive={onScreen} showResetCountdowns />
     </span>
   )
 }
@@ -230,7 +233,8 @@ export function ProviderSegment({
   compact = false,
   display,
   mode = 'verbose',
-  countdownActive = true
+  countdownActive = true,
+  showResetCountdowns = false
 }: ProviderSegmentProps): React.JSX.Element {
   const t = useTranslate()
   const provider = p?.provider ?? 'claude'
@@ -248,21 +252,26 @@ export function ProviderSegment({
   const sections = getStatusBarUsageSections(p, mode, t)
   const groupedBuckets = sections.map((section) => section.window).filter(isGroupedUsagePool)
   const showLabels = mode === 'verbose' || !compact
+  const resetTimes = showResetCountdowns ? getStatusBarResetTimes(p) : []
   // Why: gate only the clock, never the label, so visibility can't change width and re-trigger itself.
   const now = useResetCountdownClock(
     !countdownActive
       ? []
       : template && p
         ? [p.session?.resetsAt, p.weekly?.resetsAt, p.fableWeekly?.resetsAt, p.monthly?.resetsAt]
-        : sections
-            .filter(
-              ({ window }) =>
-                !compact ||
-                (mode === 'verbose' &&
-                  isGroupedUsagePool(window) &&
-                  clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
-            )
-            .map(({ window }) => window.resetsAt)
+        : [
+            ...resetTimes,
+            ...sections
+              .filter(
+                ({ window }) =>
+                  !compact ||
+                  (!showResetCountdowns &&
+                    mode === 'verbose' &&
+                    isGroupedUsagePool(window) &&
+                    clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
+              )
+              .map(({ window }) => window.resetsAt)
+          ]
   )
 
   const compactBar = mode === 'compact'
@@ -321,9 +330,11 @@ export function ProviderSegment({
   const stackClaude =
     provider === 'claude' && sections.length > 0 && Boolean(p.session || p.weekly || p.fableWeekly)
   const labelSections =
-    stackClaude && p.weekly && !compactBar
-      ? sections.filter(({ window }) => window !== p.fableWeekly)
-      : sections
+    showResetCountdowns && (compact || stackClaude)
+      ? []
+      : stackClaude && p.weekly && !compactBar
+        ? sections.filter(({ window }) => window !== p.fableWeekly)
+        : sections
 
   // Why: the compact bar drops pool names ("Cursor Models") from the row; the tooltip keeps them.
   const providerName = getProviderDisplayName(provider)
@@ -360,17 +371,21 @@ export function ProviderSegment({
               now={now}
             />
           ) : null}
-          <GroupedPoolUsage
-            visibleBuckets={groupedBuckets}
-            allBuckets={p.buckets ?? []}
-            display={display}
-            now={now}
-          />
+          {!showResetCountdowns && (
+            <GroupedPoolUsage
+              visibleBuckets={groupedBuckets}
+              allBuckets={p.buckets ?? []}
+              display={display}
+              now={now}
+            />
+          )}
         </>
       ) : (
         labelSections.map((section, index) => (
           <React.Fragment key={section.key}>
-            {index > 0 ? <span className="text-muted-foreground">·</span> : null}
+            {!showResetCountdowns && index > 0 ? (
+              <span className="text-muted-foreground">·</span>
+            ) : null}
             <span className="inline-flex items-center gap-1 self-stretch">
               {!compact && !stackClaude ? (
                 <StatusBarWindowMeter
@@ -381,26 +396,31 @@ export function ProviderSegment({
                   now={now}
                 />
               ) : null}
-              <StatusBarWindowLabel
-                w={section.window}
-                label={
-                  mode === 'compact'
-                    ? section.label
-                    : formatStatusBarSectionLabel(p, section, now, t)
-                }
-                display={display}
-                showLabel={
-                  showLabels &&
-                  section.label !== '' &&
-                  section.window !== p.fableWeekly &&
-                  !(compactBar && section.labelFirst)
-                }
-                labelFirst={section.labelFirst}
-                compact={compactBar}
-              />
+              {!showResetCountdowns && (
+                <StatusBarWindowLabel
+                  w={section.window}
+                  label={
+                    mode === 'compact'
+                      ? section.label
+                      : formatStatusBarSectionLabel(p, section, now, t)
+                  }
+                  display={display}
+                  showLabel={
+                    showLabels &&
+                    section.label !== '' &&
+                    section.window !== p.fableWeekly &&
+                    !(compactBar && section.labelFirst)
+                  }
+                  labelFirst={section.labelFirst}
+                  compact={compactBar}
+                />
+              )}
             </span>
           </React.Fragment>
         ))
+      )}
+      {!template && showResetCountdowns && (
+        <StatusBarResetCountdowns resetTimes={resetTimes} now={now} />
       )}
       {!template && showBalance && p.extraUsage ? (
         <>
