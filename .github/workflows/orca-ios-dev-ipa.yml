@@ -1,0 +1,74 @@
+name: Orca Dev iOS IPA
+
+on:
+  push:
+    branches: [zored/orca-ui-wishes]
+    paths: [.github/workflows/orca-ios-dev-ipa.yml]
+    tags: ['orca-ios-dev-*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      ORCA_IOS_DEV_CLIENT: '1'
+      BUNDLE_FROZEN: 'true'
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: mobile
+
+      - name: Generate Xcode project
+        run: pnpm exec expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods
+        working-directory: mobile/ios
+        run: bundle exec pod install
+
+      - name: Build for iPhone without signing
+        run: |
+          xcodebuild -workspace ios/OrcaDev.xcworkspace -scheme OrcaDev \
+            -configuration Debug -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/orca-ios-dev" CODE_SIGNING_ALLOWED=NO build
+
+      - name: Package unsigned IPA
+        run: |
+          app="$RUNNER_TEMP/orca-ios-dev/Build/Products/Debug-iphoneos/OrcaDev.app"
+          test "$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")" = dev.robbo.orca.mobile
+          executable=$(plutil -extract CFBundleExecutable raw -o - "$app/Info.plist")
+          xcrun lipo -verify_arch arm64 "$app/$executable"
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          ditto "$app" "$RUNNER_TEMP/ipa/Payload/OrcaDev.app"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ipa/Payload" "$RUNNER_TEMP/OrcaDev-unsigned.ipa"
+          unzip -tq "$RUNNER_TEMP/OrcaDev-unsigned.ipa"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OrcaDev-unsigned
+          path: ${{ runner.temp }}/OrcaDev-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
