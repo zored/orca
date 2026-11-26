@@ -109,7 +109,8 @@ export function useWorktreeJumpPaletteController({
     ...evaluation
   })
   const extraResults = useWorktreeJumpPaletteExtraResults({
-    ...othersLocal,
+    paletteSearchQuery: commandsOnly ? '' : localState.paletteSearchQuery,
+    taskSourceUrl: commandsOnly ? null : localState.taskSourceUrl,
     ...filter,
     ...evaluation,
     visible: visible && !commandsOnly,

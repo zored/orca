@@ -21,7 +21,10 @@ const OPEN_PAGE: Record<(typeof APP_RAIL_DESTINATION_IDS)[number], (s: AppState)
 
 const initial = useAppStore.getState()
 
-function handlers(): Map<string, () => boolean> {
+function handlers(
+  paletteMode?: 'preview' | 'run',
+  context: 'app' | 'terminal' = 'app'
+): Map<string, () => boolean> {
   const s = useAppStore.getState()
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: the two list commands under test read only activeView/workspaceChromeActive and call actions.toggleSidebar, which is the store's own; the rest of the shortcut actions are never reached.
   const state = {
@@ -39,7 +42,7 @@ function handlers(): Map<string, () => boolean> {
     terminalShortcutPolicy: undefined,
     workspaceChromeActive: false
   } as unknown as AppShortcutState
-  return createAppCommandHandlers(state, undefined, 'app', true)
+  return createAppCommandHandlers(state, undefined, context, true, paletteMode)
 }
 
 function setUp(railOn: boolean, sidebarOpen: boolean): void {
@@ -120,4 +123,31 @@ it('elsewhere the list commands keep their behavior', () => {
     window.removeEventListener(TOGGLE_WORKSPACE_BOARD_EVENT, listener)
   }
   expect(fired).toBe(0)
+})
+
+it('offers only reachable history directions in the palette without changing shortcut claims', () => {
+  useAppStore.setState({
+    activeView: 'tasks',
+    activeModal: 'worktree-palette',
+    worktreeNavHistory: ['tasks', 'missing-workspace', 'skills'],
+    worktreeNavHistoryIndex: 0
+  })
+  expect(handlers('preview').get('worktree.history.back')?.()).toBe(false)
+  expect(handlers('preview').get('worktree.history.forward')?.()).toBe(true)
+  expect(handlers('run').get('worktree.history.back')?.()).toBe(false)
+  expect(useAppStore.getState().worktreeNavHistoryIndex).toBe(0)
+  expect(handlers(undefined, 'terminal').get('worktree.history.back')?.()).toBe(true)
+
+  useAppStore.setState({ activeView: 'skills', worktreeNavHistoryIndex: 2 })
+  expect(handlers('preview').get('worktree.history.back')?.()).toBe(true)
+  expect(handlers('preview').get('worktree.history.forward')?.()).toBe(false)
+  expect(handlers('run').get('worktree.history.forward')?.()).toBe(false)
+  expect(handlers().get('worktree.history.forward')?.()).toBe(true)
+  expect(useAppStore.getState().worktreeNavHistoryIndex).toBe(2)
+
+  useAppStore.setState({
+    worktreeNavHistory: ['skills', 'missing-workspace'],
+    worktreeNavHistoryIndex: 0
+  })
+  expect(handlers('preview').get('worktree.history.forward')?.()).toBe(false)
 })

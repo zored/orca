@@ -17,6 +17,10 @@ import { isGitRepoKind } from '../../../../shared/repository/repo-kind'
 import { openPluginsSettings } from '@/components/settings/navigation/open-plugins-settings'
 import { resolveActiveTabRenameTarget } from './active-tab-rename-target'
 import { createPluginsSettingsShortcutHandler } from './plugin-settings-shortcut-handler'
+import {
+  canGoBackWorktreeHistory,
+  canGoForwardWorktreeHistory
+} from '@/store/slices/ui/workspace-navigation-history'
 import type {
   KeybindingActionId,
   KeybindingContext,
@@ -130,28 +134,23 @@ export function createAppCommandHandlers(
     const { activeModal } = useAppStore.getState()
     return paletteMode && activeModal === 'worktree-palette' ? 'none' : activeModal
   }
+  const historyHandler = (actionId: 'worktree.history.back' | 'worktree.history.forward') => () => {
+    const activeModal = modalOutsidePalette()
+    if (creationLayoutActive || !canNavigateWorktreeHistory({ activeView, activeModal })) {
+      return false
+    }
+    const store = useAppStore.getState()
+    const back = actionId === 'worktree.history.back'
+    const canNavigate = back ? canGoBackWorktreeHistory : canGoForwardWorktreeHistory
+    if (paletteMode && !canNavigate(store)) {
+      return false
+    }
+    return claim(actionId, back ? store.goBackWorktree : store.goForwardWorktree)
+  }
 
   return new Map<KeybindingActionId, () => boolean>([
-    [
-      'worktree.history.back',
-      () => {
-        const activeModal = modalOutsidePalette()
-        if (creationLayoutActive || !canNavigateWorktreeHistory({ activeView, activeModal })) {
-          return false
-        }
-        return claim('worktree.history.back', () => useAppStore.getState().goBackWorktree())
-      }
-    ],
-    [
-      'worktree.history.forward',
-      () => {
-        const activeModal = modalOutsidePalette()
-        if (creationLayoutActive || !canNavigateWorktreeHistory({ activeView, activeModal })) {
-          return false
-        }
-        return claim('worktree.history.forward', () => useAppStore.getState().goForwardWorktree())
-      }
-    ],
+    ['worktree.history.back', historyHandler('worktree.history.back')],
+    ['worktree.history.forward', historyHandler('worktree.history.forward')],
     [
       'sidebar.left.toggle',
       () =>
