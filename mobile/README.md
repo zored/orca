@@ -69,6 +69,34 @@ generated from older inputs. Expo caches iOS Simulator builds only, not physical
 `pnpm native fingerprint` prints the current hashes. On pull requests, the `Mobile native fingerprint`
 job reports in its summary whether the PR changes them, which means dev clients need a native rebuild.
 
+### Separate dev client on an iPhone
+
+Use a fresh checkout for this build so Expo generates a separate `ios/` project. Orca Dev has its
+own bundle ID and URL scheme and can sit next to App Store Orca. Remote push is off so Xcode can use
+a free Personal Team.
+
+On the build Mac, install Xcode with iOS support and make CocoaPods available. From `mobile/`:
+
+```bash
+pnpm install --frozen-lockfile
+ORCA_IOS_DEV_CLIENT=1 pnpm exec expo prebuild --platform ios --no-install
+cd ios && pod install && open *.xcworkspace
+```
+
+In Xcode, select your team under **Signing & Capabilities**, select the connected iPhone and run the
+Debug scheme. Enable Developer Mode on the phone if prompted. A Personal Team profile expires after
+seven days; run from Xcode again to renew it.
+
+For later JS/TS changes, run Metro from `mobile/` in the checkout you want to test:
+
+```bash
+ORCA_IOS_DEV_CLIENT=1 pnpm start --dev-client
+```
+
+Open the Metro QR link on the phone while both devices are on the same LAN. Rebuild after native
+dependency or config changes. Host WebView pages still come from the paired host; use a separate test
+host for experiments that change those pages. Orca Dev does not inherit App Store Orca's pairing.
+
 ## Pair With Desktop Orca
 
 1. Open Orca desktop.

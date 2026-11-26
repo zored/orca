@@ -3,25 +3,38 @@
 const APS_ENVIRONMENT =
   process.env.ORCA_IOS_APS_ENVIRONMENT === 'production' ? 'production' : 'development'
 
-module.exports = ({ config }) => ({
-  ...config,
-  // `expo run` installs a dev-client build cached for the current native fingerprint instead of
-  // rebuilding; scripts/native-client.mjs populates the cache.
-  buildCacheProvider: { plugin: './scripts/native-build-cache.cjs' },
-  ios: {
-    ...config.ios,
-    entitlements: { ...config.ios?.entitlements, 'aps-environment': APS_ENVIRONMENT }
-  },
-  plugins: (config.plugins ?? []).map((plugin) =>
-    plugin === 'expo-notifications'
-      ? [
-          'expo-notifications',
-          {
-            enableBackgroundRemoteNotifications: true,
-            mode: APS_ENVIRONMENT,
-            icon: './assets/notification-icon.png'
-          }
-        ]
-      : plugin
-  )
-})
+module.exports = ({ config }) => {
+  const iosDevClient = process.env.ORCA_IOS_DEV_CLIENT === '1'
+  const entitlements = { ...config.ios?.entitlements }
+  if (iosDevClient) {
+    delete entitlements['aps-environment']
+  } else {
+    entitlements['aps-environment'] = APS_ENVIRONMENT
+  }
+
+  return {
+    ...config,
+    ...(iosDevClient && { name: 'Orca Dev', slug: 'robbo-orca-dev', scheme: 'robbo-orca-dev' }),
+    // `expo run` installs a dev-client build cached for the current native fingerprint instead of
+    // rebuilding; scripts/native-client.mjs populates the cache.
+    buildCacheProvider: { plugin: './scripts/native-build-cache.cjs' },
+    ios: {
+      ...config.ios,
+      ...(iosDevClient && { bundleIdentifier: 'dev.robbo.orca.mobile' }),
+      entitlements
+    },
+    plugins: (config.plugins ?? []).map((plugin) =>
+      plugin === 'expo-notifications'
+        ? [
+            'expo-notifications',
+            {
+              ...(iosDevClient && { enableRemoteNotifications: false }),
+              enableBackgroundRemoteNotifications: !iosDevClient,
+              mode: APS_ENVIRONMENT,
+              icon: './assets/notification-icon.png'
+            }
+          ]
+        : plugin
+    )
+  }
+}
