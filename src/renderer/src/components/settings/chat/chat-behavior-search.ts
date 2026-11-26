@@ -74,6 +74,27 @@ export const getChatBehaviorEntriesByKey = createLocalizedCatalog(() => ({
       ...translateSearchKeyword('components.settings.nativeChat.queueSearchSteer', 'steer')
     ]
   },
+  collapseLiveActivity: {
+    targetSectionId: 'chat-collapse-live-activity',
+    title: translate(
+      'components.settings.nativeChat.collapseLiveActivity',
+      'Collapse live activity'
+    ),
+    description: translate(
+      'components.settings.nativeChat.collapseLiveActivityDescription',
+      'Show only a spinner while the agent works. Click it to see the current activity.'
+    ),
+    keywords: []
+  },
+  collapseTldr: {
+    targetSectionId: 'chat-collapse-tldr',
+    title: translate('components.settings.nativeChat.collapseTldr', 'Collapse replies with a TLDR'),
+    description: translate(
+      'components.settings.nativeChat.collapseTldrDescription',
+      'Show the TLDR first. Expand the reply to read the rest.'
+    ),
+    keywords: []
+  },
   scrollToLatestOnSend: {
     targetSectionId: 'chat-scroll-to-latest-on-send',
     title: translate(
@@ -152,7 +173,7 @@ export const getChatBehaviorEntriesByKey = createLocalizedCatalog(() => ({
     title: translate('components.settings.nativeChat.promptSuggestionsTitle', 'Suggested prompts'),
     description: translate(
       'components.settings.nativeChat.promptSuggestionsCopy',
-      'After Claude replies, its guess at your next message shows in the empty message box. Press Tab to use it. Each guess is an extra request that counts toward your Claude usage.'
+      "After Claude or Codex replies, its guess at your next message shows in the empty message box. Press Tab to use it. Each guess is an extra request that counts toward that agent's usage."
     ),
     keywords: [
       ...translateSearchKeyword(
@@ -162,7 +183,11 @@ export const getChatBehaviorEntriesByKey = createLocalizedCatalog(() => ({
       ...translateSearchKeyword(
         'components.settings.nativeChat.promptSuggestionsSearchGhost',
         'ghost text'
-      )
+      ),
+      // Russian wording for both the old «промпт» and the glossary «запрос» spellings; users search either.
+      'Предлагаемые промпты',
+      'следующий промпт',
+      'следующий запрос'
     ]
   },
   shellEnvironment: {

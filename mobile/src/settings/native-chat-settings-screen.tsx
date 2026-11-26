@@ -62,6 +62,10 @@ export default function NativeChatSettingsScreen({ onBack }: { onBack?: () => vo
   const { defaultView, setDefaultView } = useMobileDefaultSessionViewPreference()
   const chatDefault = defaultView === 'chat'
   const label = t('settings.nativeChatSettingsScreen.openInChatUi', 'Open sessions in Chat UI')
+  const collapseTldrLabel = t(
+    'settings.nativeChatSettingsScreen.collapseTldr',
+    'Collapse replies with a TLDR'
+  )
 
   // The slider's gesture needs a root here, as Terminal settings has.
   return (
@@ -147,6 +151,21 @@ export default function NativeChatSettingsScreen({ onBack }: { onBack?: () => vo
                 accessibilityLabel={label}
                 value={chatDefault}
                 onValueChange={(next) => setDefaultView(next ? 'chat' : 'terminal')}
+              />
+            }
+          />
+        </SettingsSection>
+
+        <SettingsSection>
+          <ListRow
+            title={collapseTldrLabel}
+            accessory={
+              <MobileSwitch
+                accessibilityLabel={collapseTldrLabel}
+                value={settings.collapseTldr === true}
+                onValueChange={(collapseTldr) =>
+                  void updateNativeChatTextSettings({ collapseTldr })
+                }
               />
             }
           />

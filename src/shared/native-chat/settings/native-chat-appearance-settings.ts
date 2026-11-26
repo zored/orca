@@ -37,6 +37,8 @@ export type NativeChatGlobalSettings = {
   nativeChatMarkNewMessages?: boolean
   /** The agent's suggested next prompt in an empty composer. Absent means on. */
   nativeChatPromptSuggestions?: boolean
+  nativeChatCollapseTldr?: boolean
+  nativeChatCollapseLiveActivity?: boolean
 }
 
 /** Not written into default settings, so flipping this reaches everyone who never chose. */

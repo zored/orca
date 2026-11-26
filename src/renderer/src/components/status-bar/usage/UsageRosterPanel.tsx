@@ -30,6 +30,7 @@ import {
 import { formatBareUsagePercentage, formatScopedUsageTitle } from './usage-percentage-label'
 import { getUsageHealthTone } from './usage-health-tone'
 import { UsageBar, UsageDisplayToggle, UsageValue } from './usage-meter'
+import { usagePace, usagePaceLabel } from './usage-pace'
 
 type ProviderId = ProviderRateLimits['provider']
 
@@ -37,23 +38,29 @@ function DetailMetric({
   section,
   label,
   display,
-  title
+  title,
+  now
 }: {
   section: UsageSection
   label: string
   display: UsagePercentageDisplay
   title?: string
+  now: number
 }): React.JSX.Element {
+  const t = useTranslate()
+  const pace = usagePace(section.window, now)
+  const paceLabel = usagePaceLabel(section.window.usedPercent, pace, t)
   return (
     <span
       data-usage-window={section.label}
-      title={title}
+      title={[title, paceLabel].filter(Boolean).join(' · ') || undefined}
       className="flex shrink-0 items-center gap-1.5"
     >
       <span className="text-[10px] text-muted-foreground">{label}</span>
       <UsageBar
         usedPercent={section.window.usedPercent}
         display={display}
+        paceUsedPercent={pace}
         className="h-[5px] w-7"
       />
       <UsageValue
@@ -61,6 +68,7 @@ function DetailMetric({
         display={display}
         className="text-[11px]"
       />
+      {paceLabel ? <span className="sr-only">{paceLabel}</span> : null}
     </span>
   )
 }
@@ -176,7 +184,7 @@ export function UsageRow({
   const sections = usedSections(p, t)
   const hasUsage = sections.length > 0
   const name = getProviderDisplayName(p.provider)
-  const plan = formatPlanLabel(p.planType)
+  const plan = formatPlanLabel(p.planType, p.provider)
   // Why: Detailed lists every window below, so a top-right summary would repeat one of them.
   const showDetails = hasUsage && mode === 'verbose'
   const soonestReset = showDetails ? soonestResetLabel(sections, now, intlLocale, t) : null
@@ -230,6 +238,7 @@ export function UsageRow({
                 key={section.label}
                 section={section}
                 label={label}
+                now={now}
                 display={display}
                 title={formatScopedUsageTitle(p, { ...section, label }, display, t)}
               />
@@ -255,7 +264,6 @@ export function UsageRosterPanel({
   onManageAccounts,
   onUsageDetails,
   actionsAvailable = true,
-  unavailableReason,
   renderRow
 }: {
   providers: ProviderRateLimits[]
@@ -269,7 +277,6 @@ export function UsageRosterPanel({
   canSignIn: (provider: ProviderId) => boolean
   onManageAccounts: () => void
   actionsAvailable?: boolean
-  unavailableReason?: string
   onUsageDetails: () => void
   // Return null to use the default row instead of a host-supplied detail/account wrapper.
   renderRow?: (p: ProviderRateLimits, row: React.ReactNode) => React.ReactNode
@@ -341,9 +348,6 @@ export function UsageRosterPanel({
           ]}
         />
       </div>
-      {unavailableReason ? (
-        <div className="px-3.5 pb-2 text-2xs text-muted-foreground">{unavailableReason}</div>
-      ) : null}
       <div className="border-t border-border/70" />
       {sorted.map((p) => {
         const state = getUsageRosterRowState(p, usedSections(p, t).length > 0, t)

@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native'
 import type { MobileRenderableRepoIcon } from '../../host-screen/host-screen-reply-schema'
 import { triggerMediumImpact } from '../../platform/haptics/haptics'
 import { colors, spacing } from '../../theme/mobile-theme'
+import { useLargerListRows } from '../../agents/larger-list-rows-preference'
 import { useMobileColorScheme } from '../../theme/use-mobile-color-scheme'
 import { useMobileTranslation } from '../../i18n/use-mobile-translation'
 import type {
@@ -21,6 +22,7 @@ import { getWorktreeMetaGlyphPresence } from './worktree-meta-glyph-presence'
 import { MobileBotHomeRow } from '../../bots/MobileBotHomeRow'
 import { MobileBotWorkerLine } from '../../bots/MobileBotChatRows'
 import { botWorkspaceLineAgent } from '../../../../src/shared/bots/bot-sidebar-workspaces'
+import { structuredAgentSessionStatusPaneKey } from '../../../../src/shared/agent-session/view/structured-agent-session-tab'
 import { BotLineAgentLogos } from './BotLineAgentLogos'
 import { agentDotState } from '../agent-lineage/agent-row-display'
 import { useNow } from '../../hooks/use-now'
@@ -56,6 +58,8 @@ type Props = {
   /** A bot row's "2 new": opens the bot's new threads. */
   /** A rename the desktop hasn't taken yet; the row keeps its real name and points to this one. */
   unsavedName?: string
+  /** The paired computer, for a bot row's usage-limit stops. */
+  pairedHostId?: string | null
 }
 
 function WorktreeListRowComponent({
@@ -73,10 +77,12 @@ function WorktreeListRowComponent({
   statusLive,
   onLongPress,
   onToggleLineage,
-  unsavedName
+  unsavedName,
+  pairedHostId = null
 }: Props) {
   useMobileColorScheme()
   const t = useMobileTranslation()
+  const largerRows = useLargerListRows()
   // Only a bot's worker line reads the clock here; other rows leave ticking to their agent list.
   const now = useNow(30_000, Boolean(view.botWorkspace))
   // A bot worker line shows its own agents' state.
@@ -150,7 +156,16 @@ function WorktreeListRowComponent({
         item={item}
         view={view}
         isReadOnly={isReadOnly}
-        onPress={() => onPress(item)}
+        pairedHostId={pairedHostId}
+        // The bot opens on its Home Chat, which no row under it lists.
+        onPress={() => {
+          const chat = view.botFacts?.line.chatSessionId
+          if (chat && onAgentPress) {
+            onAgentPress(item, structuredAgentSessionStatusPaneKey(chat))
+          } else {
+            onPress(item)
+          }
+        }}
         onLongPress={openActions}
         onToggle={onToggleLineage ? () => onToggleLineage({ row: item, view }) : undefined}
       />
@@ -161,6 +176,7 @@ function WorktreeListRowComponent({
     <Pressable
       style={({ pressed }) => [
         styles.worktreeRow,
+        largerRows && { paddingVertical: spacing.lg, minHeight: 48 },
         indent > 0 && { paddingLeft: spacing.lg + indent },
         item.isActive && styles.worktreeRowActive,
         view.dimmed && styles.worktreeRowDimmed,

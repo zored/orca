@@ -36,6 +36,7 @@ type ContributionValidationManifest = {
     settings: { key: string }[]
     statusBarItems: { id: string; command?: string }[]
     agentPresets: { id: string }[]
+    mcpServers: { name: string }[]
   }
   capabilities: { kind: string }[]
 }
@@ -144,6 +145,13 @@ export function validatePluginManifestContributions(
       message: 'needs the "settings:own" capability, which is how the plugin reads them'
     })
   }
+  rejectDuplicateValues(
+    manifest.contributes.mcpServers.map((server) => server.name),
+    String,
+    'mcpServers',
+    'MCP server name',
+    ctx
+  )
   rejectDuplicateValues(
     manifest.contributes.vmRecipes,
     (entry) => (entry as PathContribution).path,

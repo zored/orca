@@ -79,7 +79,8 @@ function MobileNativeChatMessageImpl({
   receipt,
   awaiting,
   userMessageOpen,
-  onToggleUserMessage
+  onToggleUserMessage,
+  withoutMeta
 }: {
   message: Chat.NativeChatMessage
   // Stable placement key survives older messages joining a folded row.
@@ -115,6 +116,8 @@ function MobileNativeChatMessageImpl({
   awaiting?: boolean
   userMessageOpen?: boolean
   onToggleUserMessage?: (messageId: string) => void
+  /** A group room draws one time line per turn; otherwise the time line always shows, so the row never shifts when copy appears. */
+  withoutMeta?: true
 }): React.JSX.Element {
   useMobileColorScheme()
   const t = useMobileTranslation()
@@ -165,6 +168,7 @@ function MobileNativeChatMessageImpl({
         pending={askPending}
         fontScale={fontScale}
         listsQuestions={false}
+        disclosureKey={`ask:${rowKey ?? message.id}`}
       />
     ) : null
   // A ref keeps the memoized Markdown context stable as the message streams.
@@ -226,6 +230,7 @@ function MobileNativeChatMessageImpl({
         <MobileNativeChatResolutionReceipt
           body={receipt}
           awaiting={awaiting}
+          disclosureKey={`receipt:${rowId}`}
           fontScale={fontScale}
         />
       </View>
@@ -251,7 +256,6 @@ function MobileNativeChatMessageImpl({
       )
     )
   }
-  const isChatTurn = message.role === 'user' || message.role === 'assistant'
   // Paced prose calls this from its own renders too, so the key must not depend on earlier calls.
   const proseRow = (block: Chat.NativeChatBlock, key: number, text: string, revealing = false) => {
     const textKey = `${message.id}:text:${key}`
@@ -347,13 +351,14 @@ function MobileNativeChatMessageImpl({
                   rowKey={message.id}
                   blocks={drawnProse}
                   growingBlock={growingBlock}
+                  fullContentStatus={showFull}
+                  working={activeTurnIsWorking === true}
                   paced={message.role === 'assistant'}
                   fontScale={fontScale}
                 >
                   {(block, index, shown) => proseRow(block, index, shown.text, shown.revealing)}
                 </MobileNativeChatAnswerProse>
               )}
-              {isUser ? null : showFull}
             </>
           )}
           {(isReasoning ? [] : backgroundTasks).map((task) => (
@@ -394,8 +399,7 @@ function MobileNativeChatMessageImpl({
         </Content>
         {isUser ? <Marks.MobileNativeChatUserMessageNotes message={message} /> : null}
         {unsentNotice ? <Text style={styles.unsentNotice}>{unsentNotice}</Text> : null}
-        {/* Always shown, so the row never shifts when copy appears. */}
-        {isChatTurn && !agentFrom ? (
+        {(message.role === 'user' || message.role === 'assistant') && !agentFrom && !withoutMeta ? (
           <MobileNativeChatMessageMeta
             message={message}
             rowKey={rowKey ?? message.id}

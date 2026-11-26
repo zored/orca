@@ -43,12 +43,17 @@ function providersAt(level: number): ProviderRateLimits[] {
 }
 
 const FABLE_ONLY = provider('claude', { fableWeekly: win(100, 10_080, 4 * DAY) })
+const UNKNOWN_RESET = provider('codex', {
+  session: { ...win(45, 300, HOUR), resetsAt: null },
+  weekly: win(10, 10_080, -DAY)
+})
 
 const ROWS: { label: string; providers: ProviderRateLimits[] }[] = [
   { label: '39%', providers: providersAt(39) },
   { label: '86%', providers: providersAt(86) },
   { label: '98%', providers: providersAt(98) },
-  { label: 'Fable only', providers: [FABLE_ONLY] }
+  { label: 'Fable only', providers: [FABLE_ONLY] },
+  { label: 'No reset time', providers: [UNKNOWN_RESET] }
 ]
 
 function levelsFixture(mode: StatusBarUsageMode) {
@@ -60,7 +65,7 @@ function levelsFixture(mode: StatusBarUsageMode) {
           [false, true].map((compact) => (
             <div
               key={`${row.label}-${compact}`}
-              className="flex items-center gap-3 whitespace-nowrap rounded border border-border px-2 py-1"
+              className="flex h-6 items-center gap-3 whitespace-nowrap rounded border border-border px-2 [--usage-meter-width:250px]"
             >
               <span className="w-32 shrink-0 text-muted-foreground">{`${row.label} · ${compact ? 'narrow' : 'normal'}`}</span>
               {row.providers.map((p) => (
@@ -70,6 +75,7 @@ function levelsFixture(mode: StatusBarUsageMode) {
                   compact={compact}
                   display="used"
                   mode={mode}
+                  showResetCountdowns
                 />
               ))}
             </div>

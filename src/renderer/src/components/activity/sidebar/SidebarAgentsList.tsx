@@ -34,6 +34,7 @@ export type SidebarAgentsListProps = {
   setQuery: (query: string) => void
   badgeTarget?: HTMLElement | null
   optionsTarget?: HTMLElement | null
+  collapseAllTarget?: HTMLElement | null
   scrollTopRef?: React.MutableRefObject<number>
 }
 
@@ -94,6 +95,7 @@ function SidebarAgentsListBody({
   query,
   setQuery,
   optionsTarget,
+  collapseAllTarget,
   scrollTopRef,
   threads
 }: Omit<SidebarAgentsListProps, 'active' | 'badgeTarget'> & {
@@ -224,6 +226,7 @@ function SidebarAgentsListBody({
         showFilterControls={false}
         showOptionsMenu={false}
         showInlineActions={false}
+        collapseAllTarget={collapseAllTarget}
         scrollTopRef={scrollTopRef}
       />
       {optionsTarget

@@ -39,7 +39,6 @@ export function readUsageRowWidths(area: HTMLElement): UsageRowWidths {
     available:
       widthOf(area) - horizontalChrome(trigger) - (refresh ? widthOf(refresh) + rowGap : 0),
     chipGap,
-    unitLabelWidth: widthOf(area.querySelector('[data-measure-unit]')),
     moreChipWidth: widthOf(area.querySelector('[data-measure-more]')),
     chips
   }
@@ -54,7 +53,6 @@ function sameWidths(a: UsageRowWidths | null, b: UsageRowWidths): boolean {
   return (
     close(a.available, b.available) &&
     close(a.chipGap, b.chipGap) &&
-    close(a.unitLabelWidth, b.unitLabelWidth) &&
     close(a.moreChipWidth, b.moreChipWidth) &&
     providers.length === Object.keys(a.chips).length &&
     providers.every((provider) =>
@@ -64,7 +62,7 @@ function sameWidths(a: UsageRowWidths | null, b: UsageRowWidths): boolean {
 }
 
 /** The elements whose natural widths the row's form is chosen from. */
-const MEASURED_ELEMENTS = '[data-measure-chip],[data-measure-unit],[data-measure-more]'
+const MEASURED_ELEMENTS = '[data-measure-chip],[data-measure-more]'
 
 /**
  * Natural widths for choosing the usage row's form. Why not measure the shown row: a choice that

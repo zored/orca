@@ -3,6 +3,10 @@ import { RefreshCw } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuContent,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
@@ -29,8 +33,10 @@ import {
   type UsageRowLayout
 } from './composition/status-bar-usage-collapse'
 import { useUsageRowWidths } from './composition/use-usage-row-widths'
-import { UsageUnitLabel, usageChipShowsPercentage } from './usage/usage-unit-label'
 import type { useStatusBarController } from './composition/use-status-bar-controller'
+import { STATUS_BAR_USAGE_PROVIDERS } from '../../../../shared/status-bar/status-bar-usage-format'
+import { getProviderDisplayName } from '../../../../shared/agent-usage/display/usage-provider-windows'
+import { isStatusBarItemAvailable } from './composition/status-bar-agent-gating'
 import { isOwnerNotSetUpPlaceholder } from './usage/owner-usage-rate-limits'
 
 type StatusBarController = NonNullable<ReturnType<typeof useStatusBarController>>
@@ -48,6 +54,7 @@ export function StatusBarUsageArea({
     anyFetching,
     anyVisible,
     canSignInFromUsageRow,
+    detectedAgentIds,
     handleManageAccounts,
     handleOpenProviderAccounts,
     handleRefresh,
@@ -62,6 +69,8 @@ export function StatusBarUsageArea({
     setStatusBarUsageMode,
     showEmptyUsageCta,
     statusBarUsageMode,
+    statusBarItems,
+    toggleStatusBarItem,
     usageMenuFocusHandoff,
     usageMenuOpen,
     usagePercentageDisplay
@@ -70,12 +79,7 @@ export function StatusBarUsageArea({
     USAGE_ROW_LEVELS[level]?.tightestOnly ? 'compact' : statusBarUsageMode
   const chipFacts: UsageChipFacts[] = rosterProviders.map((p) => ({
     provider: p.provider,
-    urgent: isUsageUrgent(p),
-    percentage: [
-      usageChipShowsPercentage(p, levelMode(0), t),
-      usageChipShowsPercentage(p, levelMode(1), t),
-      usageChipShowsPercentage(p, levelMode(2), t)
-    ]
+    urgent: isUsageUrgent(p)
   }))
   const usageLayout: UsageRowLayout = usageWidths
     ? chooseUsageRowLayout(usageWidths, chipFacts)
@@ -84,7 +88,8 @@ export function StatusBarUsageArea({
   const usageCompact = USAGE_ROW_LEVELS[usageLayout.level]?.compact ?? false
   const shownProviders = rosterProviders.filter((p) => !usageLayout.collapsed.includes(p.provider))
   const hiddenProviders = rosterProviders.filter((p) => usageLayout.collapsed.includes(p.provider))
-  const showUnitLabel = shownProviders.some((p) => usageChipShowsPercentage(p, usageMode, t))
+  // Why the setting, not usageMode: the measured gap must not depend on the layout choice.
+  const compactBar = statusBarUsageMode === 'compact'
 
   // Why: usage gives way first, but keeps enough width to stay clickable; its popover holds
   // every provider. Its form is chosen from widths measured off-layout (see useUsageRowWidths).
@@ -93,11 +98,11 @@ export function StatusBarUsageArea({
       ref={usageAreaRef}
       data-usage-area=""
       className={cn(
-        'relative flex flex-1 items-center overflow-clip [overflow-clip-margin:3px]',
+        'relative flex flex-1 self-stretch overflow-clip [overflow-clip-margin:3px]',
         hasVisibleUsageMeters ? 'min-w-16' : 'min-w-0'
       )}
     >
-      <div data-usage-row="" className="flex shrink-0 items-center gap-3">
+      <div data-usage-row="" className="flex min-w-0 max-w-full items-center gap-3">
         {isEmptyUsageState ? (
           showEmptyUsageCta ? (
             <StatusBarUsageEmptyCta remoteOwner={remoteOwner} />
@@ -113,11 +118,18 @@ export function StatusBarUsageArea({
                 <button
                   type="button"
                   data-usage-trigger=""
-                  className="inline-flex items-center gap-3 rounded px-1 py-0.5 hover:bg-accent/70"
+                  className={cn(
+                    'inline-flex min-w-0 items-center self-stretch rounded px-1 hover:bg-accent/70 [--usage-meter-width:250px]',
+                    compactBar ? 'gap-3.5' : 'gap-3'
+                  )}
                   aria-label={t('auto.components.status.bar.UsageRosterPanel.title', 'Usage')}
+                  aria-description={
+                    usagePercentageDisplay === 'used'
+                      ? t('auto.components.status.bar.usageUnitLabel.used', 'Used')
+                      : t('auto.components.status.bar.usageUnitLabel.remaining', 'Remaining')
+                  }
                   title={remoteOwner?.label}
                 >
-                  {showUnitLabel ? <UsageUnitLabel display={usagePercentageDisplay} /> : null}
                   {shownProviders.map((p) => (
                     <ClippedRowProviderSegment
                       key={p.provider}
@@ -149,8 +161,12 @@ export function StatusBarUsageArea({
                 onCloseAutoFocus={usageMenuFocusHandoff.onCloseAutoFocus}
               >
                 <UsageRosterPanel
-                  actionsAvailable={remoteOwner === null || remoteOwner.environmentId !== null}
-                  unavailableReason={remoteOwner?.unavailableReason}
+                  // Why: a WSL distro's accounts are managed on this device, so its rows stay actionable.
+                  actionsAvailable={
+                    remoteOwner === null ||
+                    remoteOwner.environmentId !== null ||
+                    remoteOwner.wslDistro !== undefined
+                  }
                   providers={rosterProviders}
                   display={usagePercentageDisplay}
                   statusBarUsageMode={statusBarUsageMode}
@@ -211,6 +227,25 @@ export function StatusBarUsageArea({
                     )
                   }}
                 />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    {t('statusBar.visibleProviders', 'Visible providers')}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent {...STATUS_BAR_CONTEXT_MENU_EXEMPT_PROPS}>
+                    {STATUS_BAR_USAGE_PROVIDERS.filter((provider) =>
+                      isStatusBarItemAvailable(provider, detectedAgentIds)
+                    ).map((provider) => (
+                      <DropdownMenuCheckboxItem
+                        key={provider}
+                        checked={statusBarItems.includes(provider)}
+                        onCheckedChange={() => toggleStatusBarItem(provider)}
+                        onSelect={(event) => event.preventDefault()}
+                      >
+                        {getProviderDisplayName(provider)}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               </DropdownMenuContent>
             </DropdownMenu>
           </StatusBarUsageChangeNotices>
@@ -222,7 +257,7 @@ export function StatusBarUsageArea({
                 data-usage-refresh=""
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                className="shrink-0 rounded p-0.5 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                 aria-label={t(
                   'auto.components.status.bar.StatusBar.3325d996cb',
                   'Refresh rate limits'
@@ -247,9 +282,6 @@ export function StatusBarUsageArea({
           inert
           className="pointer-events-none invisible absolute left-0 top-0 flex w-max items-center"
         >
-          <span data-measure-unit="" className="inline-flex">
-            <UsageUnitLabel display={usagePercentageDisplay} />
-          </span>
           {rosterProviders.flatMap((p) =>
             USAGE_ROW_LEVELS.map((level, index) => (
               <span
@@ -264,6 +296,7 @@ export function StatusBarUsageArea({
                   display={usagePercentageDisplay}
                   mode={levelMode(index)}
                   countdownActive={false}
+                  showResetCountdowns
                 />
               </span>
             ))

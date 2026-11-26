@@ -10,6 +10,7 @@ import type { RuntimeWorktreeAgentRow } from '../../../../../src/shared/worktree
 import { withoutNativeChatVisualDirectiveLines } from '../../../../../src/shared/native-chat/visuals/native-chat-visual-directive'
 import { colors, spacing, pressedStyle } from '../../../theme/mobile-theme'
 import { themedStyleSheet } from '../../../theme/themed-styles'
+import { useLargerListRows } from '../../../agents/larger-list-rows-preference'
 import { useMobileColorScheme } from '../../../theme/use-mobile-color-scheme'
 import {
   agentDisplayForkedLead,
@@ -52,6 +53,7 @@ function WorktreeAgentRowComponent({
 }: Props) {
   useMobileColorScheme()
   const t = useMobileTranslation()
+  const largerRows = useLargerListRows()
   const dotState = childRow?.displayState ?? agentDotState(agent, now)
   // Visuals render only in transcript; row keeps surrounding prose and treats visual-only reply as empty.
   const reply = agent.lastAssistantMessage
@@ -73,7 +75,13 @@ function WorktreeAgentRowComponent({
         : formatTimeAgo(timeAt, now)
 
   const content = (
-    <View style={[styles.row, { paddingLeft: depth * AGENT_ROW_INDENT_PER_DEPTH }]}>
+    <View
+      style={[
+        styles.row,
+        largerRows && styles.roomy,
+        { paddingLeft: depth * AGENT_ROW_INDENT_PER_DEPTH }
+      ]}
+    >
       <AgentStateDot state={dotState} />
       {/* Use desktop-style agent identity logo instead of two-letter code. */}
       {!childRow && agent.agentType ? (
@@ -142,6 +150,7 @@ const styles = themedStyleSheet(() => ({
     gap: spacing.xs,
     marginTop: 3
   },
+  roomy: { minHeight: 48, paddingVertical: spacing.xs },
   label: {
     flex: 1,
     fontSize: 11,

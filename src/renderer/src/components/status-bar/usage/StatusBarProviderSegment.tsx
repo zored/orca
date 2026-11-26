@@ -6,8 +6,7 @@ import React from 'react'
 import { useSectionOnScreen } from '../../right-sidebar/source-control/panel/section-viewport-presence'
 import type {
   OwnerNotSetUpPlaceholder,
-  ProviderRateLimits,
-  RateLimitWindow
+  ProviderRateLimits
 } from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
 import {
   type UsagePercentageDisplay,
@@ -18,7 +17,13 @@ import { formatCurrencyAmount } from '../../../../../shared/agent-usage/display/
 import { formatCreditCount } from '../../../../../shared/agent-usage/display/credit-count-format'
 import { ProviderIcon } from './provider-usage-panel'
 import { USAGE_WARNING_PERCENT } from './usage-health-tone'
-import { UsageBar } from './usage-meter'
+import {
+  ClaudeStatusBarMeter,
+  getStatusBarResetTimes,
+  StatusBarResetCountdowns,
+  StatusBarWindowLabel,
+  StatusBarWindowMeter
+} from './status-bar-usage-window'
 import { getOwnerNotSetUpLabelParts } from '../../../../../shared/agent-usage/status-copy/owner-not-set-up-copy'
 import {
   getProviderUsageErrorMessage,
@@ -27,7 +32,7 @@ import {
 } from '../../../../../shared/agent-usage/status-copy/usage-error-copy'
 import { getTightestUsageSection, getUsageHeadlineSection } from './usage-headline-sections'
 import { getProviderDisplayName } from '../../../../../shared/agent-usage/display/usage-provider-windows'
-import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-percentage-label'
+import { formatUsagePercentageLabel } from './usage-percentage-label'
 import { translate } from '@/i18n/i18n'
 import { useTranslate, useIntlLocale, type Translate } from '@/i18n/use-translate'
 import { getStatusBarUsageSections } from '../composition/status-bar-usage-sections'
@@ -38,40 +43,6 @@ import { useResetCountdownClock } from '@/components/status-bar/usage/useResetCo
 import { useNow } from '@/lib/window-activity/use-now'
 
 const CALM_STALE_USAGE_MAX_AGE_MS = 30 * 60_000
-
-function MiniBar({
-  usedPct,
-  display
-}: {
-  usedPct: number
-  display: UsagePercentageDisplay
-}): React.JSX.Element {
-  // Why plain: usage is colored only inside a provider's details card, never in the status bar.
-  return <UsageBar usedPercent={usedPct} display={display} className="h-[6px] w-[48px] shrink-0" />
-}
-
-function WindowLabel({
-  w,
-  label,
-  display,
-  showLabel = true,
-  labelFirst = false
-}: {
-  w: RateLimitWindow
-  label: string
-  display: UsagePercentageDisplay
-  showLabel?: boolean
-  labelFirst?: boolean
-}): React.JSX.Element {
-  const t = useTranslate()
-  return (
-    <span className="tabular-nums">
-      {showLabel && labelFirst ? `${label} ` : ''}
-      {formatBareUsagePercentage(w.usedPercent, display, t)}
-      {showLabel && !labelFirst ? ` ${label}` : ''}
-    </span>
-  )
-}
 
 // Share badge markup and data detection between the roster trigger and provider details.
 export function ProviderLetterBadge({ p }: { p: ProviderRateLimits }): React.JSX.Element {
@@ -156,8 +127,6 @@ function getProviderLetter(provider: ProviderRateLimits['provider']): string {
   switch (provider) {
     case 'claude':
       return 'C'
-    case 'gemini':
-      return 'G'
     case 'opencode-go':
       return 'O'
     case 'kimi':
@@ -246,14 +215,15 @@ type ProviderSegmentProps = {
   display: UsagePercentageDisplay
   mode?: StatusBarUsageMode
   countdownActive?: boolean
+  showResetCountdowns?: boolean
 }
 
 /** A chip in the clipping status bar row: clipped chips stop their countdown wakes. */
 export function ClippedRowProviderSegment(props: ProviderSegmentProps): React.JSX.Element {
   const [ref, onScreen] = useSectionOnScreen('viewport')
   return (
-    <span ref={ref} className="inline-flex items-center">
-      <ProviderSegment {...props} countdownActive={onScreen} />
+    <span ref={ref} className="inline-flex items-center self-stretch">
+      <ProviderSegment {...props} countdownActive={onScreen} showResetCountdowns />
     </span>
   )
 }
@@ -263,7 +233,8 @@ export function ProviderSegment({
   compact = false,
   display,
   mode = 'verbose',
-  countdownActive = true
+  countdownActive = true,
+  showResetCountdowns = false
 }: ProviderSegmentProps): React.JSX.Element {
   const t = useTranslate()
   const provider = p?.provider ?? 'claude'
@@ -281,17 +252,34 @@ export function ProviderSegment({
   const sections = getStatusBarUsageSections(p, mode, t)
   const groupedBuckets = sections.map((section) => section.window).filter(isGroupedUsagePool)
   const showLabels = mode === 'verbose' || !compact
+  const resetTimes = showResetCountdowns ? getStatusBarResetTimes(p) : []
   // Why: gate only the clock, never the label, so visibility can't change width and re-trigger itself.
   const now = useResetCountdownClock(
     !countdownActive
       ? []
       : template && p
         ? [p.session?.resetsAt, p.weekly?.resetsAt, p.fableWeekly?.resetsAt, p.monthly?.resetsAt]
-        : showLabels
-          ? groupedBuckets
-              .filter((bucket) => clampUsedPercent(bucket.usedPercent) >= USAGE_WARNING_PERCENT)
-              .map((bucket) => bucket.resetsAt)
-          : []
+        : [
+            ...resetTimes,
+            ...sections
+              .filter(
+                ({ window }) =>
+                  !compact ||
+                  (!showResetCountdowns &&
+                    mode === 'verbose' &&
+                    isGroupedUsagePool(window) &&
+                    clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
+              )
+              .map(({ window }) => window.resetsAt)
+          ]
+  )
+
+  const compactBar = mode === 'compact'
+  // Why: the compact bar dims icons so the numbers carry the row.
+  const icon = (
+    <span className={compactBar ? 'inline-flex shrink-0 opacity-50' : 'inline-flex shrink-0'}>
+      <ProviderIcon provider={provider} />
+    </span>
   )
 
   // Why static: unfocused windows never poll, so a pending chip's pulse would redraw the compositor indefinitely.
@@ -306,9 +294,7 @@ export function ProviderSegment({
 
   if (p.status === 'unavailable') {
     return (
-      <span className="inline-flex items-center gap-1 text-muted-foreground/50">
-        <ProviderIcon provider={provider} /> --
-      </span>
+      <span className="inline-flex items-center gap-1 text-muted-foreground/50">{icon} --</span>
     )
   }
 
@@ -341,35 +327,100 @@ export function ProviderSegment({
   const showBalance = isExtraUsageActive(p)
   const showGroupedPools =
     mode === 'verbose' && groupedBuckets.length > 0 && groupedBuckets.length === sections.length
+  const stackClaude =
+    provider === 'claude' && sections.length > 0 && Boolean(p.session || p.weekly || p.fableWeekly)
+  const labelSections =
+    showResetCountdowns && (compact || stackClaude)
+      ? []
+      : stackClaude && p.weekly && !compactBar
+        ? sections.filter(({ window }) => window !== p.fableWeekly)
+        : sections
+
+  // Why: the compact bar drops pool names ("Cursor Models") from the row; the tooltip keeps them.
+  const providerName = getProviderDisplayName(provider)
+  const pool = sections.find((section) => section.labelFirst)?.label
+  const subject =
+    !pool || pool.startsWith(providerName) ? (pool ?? providerName) : `${providerName} ${pool}`
+  const compactTitle =
+    compactBar && tightest
+      ? `${subject}${tightest.window === p.fableWeekly ? ` · ${tightest.label}` : ''} ${formatUsagePercentageLabel(tightest.window.usedPercent, display, t)}`
+      : undefined
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <ProviderIcon provider={provider} />
-      {!template && mode === 'verbose' && tightest && !compact ? (
-        <MiniBar usedPct={clampUsedPercent(tightest.window.usedPercent)} display={display} />
-      ) : null}
+    <span
+      className={
+        compactBar
+          ? 'inline-flex items-center gap-[5px] self-stretch'
+          : 'inline-flex items-center gap-1.5 self-stretch'
+      }
+      title={compactTitle}
+    >
+      {icon}
+      {!template && !compact && stackClaude && (
+        <ClaudeStatusBarMeter limits={p} display={display} now={now} compact={compactBar} />
+      )}
       {template ? (
         <CustomUsageText template={template} limits={p} display={display} now={now} />
       ) : showGroupedPools ? (
-        <GroupedPoolUsage
-          visibleBuckets={groupedBuckets}
-          allBuckets={p.buckets ?? []}
-          display={display}
-          now={now}
-        />
-      ) : (
-        sections.map((section, index) => (
-          <React.Fragment key={section.key}>
-            {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-            <WindowLabel
-              w={section.window}
-              label={formatStatusBarSectionLabel(p, section, now, t)}
+        <>
+          {tightest && !compact ? (
+            <StatusBarWindowMeter
+              window={tightest.window}
+              label={tightest.label}
               display={display}
-              showLabel={showLabels}
-              labelFirst={section.labelFirst}
+              now={now}
             />
+          ) : null}
+          {!showResetCountdowns && (
+            <GroupedPoolUsage
+              visibleBuckets={groupedBuckets}
+              allBuckets={p.buckets ?? []}
+              display={display}
+              now={now}
+            />
+          )}
+        </>
+      ) : (
+        labelSections.map((section, index) => (
+          <React.Fragment key={section.key}>
+            {!showResetCountdowns && index > 0 ? (
+              <span className="text-muted-foreground">·</span>
+            ) : null}
+            <span className="inline-flex items-center gap-1 self-stretch">
+              {!compact && !stackClaude ? (
+                <StatusBarWindowMeter
+                  window={section.window}
+                  label={section.label}
+                  compact={compactBar}
+                  display={display}
+                  now={now}
+                />
+              ) : null}
+              {!showResetCountdowns && (
+                <StatusBarWindowLabel
+                  w={section.window}
+                  label={
+                    mode === 'compact'
+                      ? section.label
+                      : formatStatusBarSectionLabel(p, section, now, t)
+                  }
+                  display={display}
+                  showLabel={
+                    showLabels &&
+                    section.label !== '' &&
+                    section.window !== p.fableWeekly &&
+                    !(compactBar && section.labelFirst)
+                  }
+                  labelFirst={section.labelFirst}
+                  compact={compactBar}
+                />
+              )}
+            </span>
           </React.Fragment>
         ))
+      )}
+      {!template && showResetCountdowns && (
+        <StatusBarResetCountdowns resetTimes={resetTimes} now={now} />
       )}
       {!template && showBalance && p.extraUsage ? (
         <>

@@ -6,6 +6,8 @@ import {
   useVirtualizer,
   type Range
 } from '@tanstack/react-virtual'
+import { createPortal } from 'react-dom'
+import { SectionCollapseAllButton } from '../../sidebar/worktree-list/controls/SectionCollapseAllButton'
 import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
@@ -23,7 +25,10 @@ import {
   getActivityHeaderItemIndexes,
   getActivityVirtualItemKey
 } from './activity-thread-virtual-items'
-import { ActivityThreadCollapseContext } from './activity-thread-collapse-context'
+import {
+  ActivityThreadCollapseContext,
+  toggleActivityGroups
+} from './activity-thread-collapse-context'
 import { useActivityThreadSelection } from './use-activity-thread-selection'
 import type {
   ActivityGroupBy,
@@ -75,8 +80,7 @@ export function ActivityThreadListPane({
   showFilterControls = true,
   showOptionsMenu = true,
   showInlineActions = true,
-  collapsedGroupKeys,
-  onToggleGroupCollapse,
+  collapseAllTarget,
   scrollTopRef
 }: {
   threadListRef?: React.RefObject<HTMLDivElement | null>
@@ -113,35 +117,37 @@ export function ActivityThreadListPane({
   showFilterControls?: boolean
   showOptionsMenu?: boolean
   showInlineActions?: boolean
-  collapsedGroupKeys?: ReadonlySet<string>
-  onToggleGroupCollapse?: (groupKey: string) => void
+  collapseAllTarget?: HTMLElement | null
   /** Optional view-local scroll memory; updated without triggering React renders. */
   scrollTopRef?: React.MutableRefObject<number>
 }): React.JSX.Element {
   const t = useTranslate()
-  const [internalCollapsedGroupKeys, setInternalCollapsedGroupKeys] = useState<Set<string>>(
+  const [internalCollapsedGroupKeys, setInternalCollapsedGroupKeys] = useState<ReadonlySet<string>>(
     () => new Set()
   )
-  // Prefer explicit collapse props, then retained caller context, then pane-local state.
   const contextCollapse = useContext(ActivityThreadCollapseContext)
-  const isControlled = collapsedGroupKeys !== undefined && onToggleGroupCollapse !== undefined
-  const effectiveCollapsedGroupKeys = isControlled
-    ? collapsedGroupKeys
-    : (contextCollapse?.collapsedGroupKeys ?? internalCollapsedGroupKeys)
-  const handleToggleGroup = isControlled
-    ? onToggleGroupCollapse
-    : (contextCollapse?.onToggleGroupCollapse ??
-      ((groupKey: string) => {
-        setInternalCollapsedGroupKeys((prev) => {
-          const next = new Set(prev)
-          if (next.has(groupKey)) {
-            next.delete(groupKey)
-          } else {
-            next.add(groupKey)
-          }
-          return next
-        })
-      }))
+  const effectiveCollapsedGroupKeys =
+    contextCollapse?.collapsedGroupKeys ?? internalCollapsedGroupKeys
+  const setCollapsedGroupKeys =
+    contextCollapse?.setCollapsedGroupKeys ?? setInternalCollapsedGroupKeys
+  const handleToggleGroup = (groupKey: string) =>
+    setCollapsedGroupKeys((prev) => toggleActivityGroups(prev, [groupKey]))
+  const collapseAllButton =
+    groupBy !== 'none' && visibleThreadGroups.length > 0 ? (
+      <SectionCollapseAllButton
+        allCollapsed={visibleThreadGroups.every(({ key }) => effectiveCollapsedGroupKeys.has(key))}
+        onToggle={() =>
+          setCollapsedGroupKeys((prev) =>
+            toggleActivityGroups(
+              prev,
+              visibleThreadGroups.map(({ key }) => key)
+            )
+          )
+        }
+        collapseLabel={t('activity.groups.collapseAll', 'Collapse all activity groups')}
+        expandLabel={t('activity.groups.expandAll', 'Expand all activity groups')}
+      />
+    ) : null
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const hasRestoredScrollRef = useRef(false)
@@ -301,6 +307,9 @@ export function ActivityThreadListPane({
       )}
       style={resizable ? { width: threadListWidth } : undefined}
     >
+      {collapseAllTarget && collapseAllButton
+        ? createPortal(collapseAllButton, collapseAllTarget)
+        : null}
       <ActivityThreadListToolbar
         activityFilterInputRef={activityFilterInputRef}
         query={query}
@@ -321,6 +330,7 @@ export function ActivityThreadListPane({
         showFilterControls={showFilterControls}
         showOptionsMenu={showOptionsMenu}
         showInlineActions={showInlineActions}
+        collapseAllButton={collapseAllTarget ? undefined : collapseAllButton}
       />
       <div className="relative min-h-0 flex-1">
         <div
