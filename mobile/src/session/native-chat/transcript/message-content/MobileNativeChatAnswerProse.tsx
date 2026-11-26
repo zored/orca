@@ -1,3 +1,4 @@
+import { Eye, EyeOff } from 'lucide-react-native'
 import {
   createContext,
   useContext,
@@ -9,7 +10,7 @@ import {
 import { findNativeChatTldr } from '../../../../../../src/shared/native-chat/transcript/folding/native-chat-tldr'
 import { nativeChatProseToMarkdown } from '../../../../../../src/shared/native-chat/transcript/row-content/native-chat-prose'
 import { useNativeChatTextSettings } from '../../preferences/native-chat-text-settings'
-import { colors, pressedStyle, spacing } from '../../../../theme/mobile-theme'
+import { colors, pressedStyle } from '../../../../theme/mobile-theme'
 import { themedStyleSheet } from '../../../../theme/themed-styles'
 import { Pressable, Text } from 'react-native'
 import { quietBotAnswerBlocks } from '../../../../../../src/shared/bot-quiet-result'
@@ -56,6 +57,7 @@ export function MobileNativeChatAnswerProse({
     [answer.blocks, collapseTldr, prose.paced, prose.growingBlock, working]
   )
   const folded = tldr !== undefined && expandedRow !== prose.rowKey
+  const TldrIcon = folded ? EyeOff : Eye
   return (
     <>
       {folded ? (
@@ -66,15 +68,16 @@ export function MobileNativeChatAnswerProse({
       {tldr !== undefined ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={
+            folded
+              ? t('chat.tldr.showFull', 'Show full reply')
+              : t('chat.tldr.showLess', 'Show less')
+          }
           accessibilityState={{ expanded: !folded }}
           style={({ pressed }) => [disclosureStyles.toggle, pressed && pressedStyle]}
           onPress={() => setExpandedRow(folded ? prose.rowKey : null)}
         >
-          <Text style={[disclosureStyles.label, scaledType(13, fontScale)]}>
-            {folded
-              ? t('chat.tldr.showFull', 'Show full reply')
-              : t('chat.tldr.showLess', 'Show less')}
-          </Text>
+          <TldrIcon size={scaledType(16, fontScale).fontSize} color={colors.chatForegroundStrong} />
         </Pressable>
       ) : null}
       {answer.nothingToReport ? (
@@ -90,9 +93,9 @@ export function MobileNativeChatAnswerProse({
 const disclosureStyles = themedStyleSheet(() => ({
   toggle: {
     alignSelf: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
-    paddingVertical: spacing.xs
-  },
-  label: { color: colors.chatForegroundStrong, fontWeight: '600' }
+    minWidth: 44
+  }
 }))

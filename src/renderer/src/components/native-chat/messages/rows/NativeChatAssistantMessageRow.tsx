@@ -1,7 +1,9 @@
+import { Eye, EyeOff } from 'lucide-react'
 import { useContext, useState } from 'react'
 import { useAppStore } from '@/store'
 import { findNativeChatTldr } from '../../../../../../shared/native-chat/transcript/folding/native-chat-tldr'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { NativeChatInSubagentSheet } from '../../subagents/native-chat-subagent-sheet-context'
 import { cn } from '@/lib/class-names'
 import { quietBotAnswer } from '../../../../../../shared/bot-quiet-result'
@@ -87,6 +89,13 @@ export function NativeChatAssistantMessageRow({
       ? findNativeChatTldr(shownWords)
       : undefined
   const folded = tldr !== undefined && expandedMessageId !== message.id
+  const TldrIcon = folded ? EyeOff : Eye
+  const tldrActionLabel =
+    tldr === undefined
+      ? undefined
+      : folded
+        ? t('nativeChat.tldr.showFull', 'Show full reply')
+        : t('nativeChat.tldr.showLess', 'Show less')
   // Hide controls on system asides and the still-working frontier, where more content may arrive. In
   // a turn they belong to its holder, which may draw only images when folding hid its words.
   // A subagent's sheet is read-only history: its rows offer no turn actions.
@@ -131,18 +140,22 @@ export function NativeChatAssistantMessageRow({
           streaming={streaming}
         />
       ) : null}
-      {tldr !== undefined ? (
-        <Button
-          type="button"
-          variant="disclosure"
-          size="xs"
-          aria-expanded={!folded}
-          onClick={() => setExpandedMessageId(folded ? message.id : null)}
-        >
-          {folded
-            ? t('nativeChat.tldr.showFull', 'Show full reply')
-            : t('nativeChat.tldr.showLess', 'Show less')}
-        </Button>
+      {tldrActionLabel !== undefined ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="disclosure"
+              size="icon-xs"
+              aria-label={tldrActionLabel}
+              aria-expanded={!folded}
+              onClick={() => setExpandedMessageId(folded ? message.id : null)}
+            >
+              <TldrIcon aria-hidden className="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">{tldrActionLabel}</TooltipContent>
+        </Tooltip>
       ) : null}
       {quiet.nothingToReport ? (
         <p className="text-xs text-chat-foreground-faint">
