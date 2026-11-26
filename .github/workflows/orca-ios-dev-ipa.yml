@@ -2,7 +2,7 @@ name: Orca Dev iOS IPA
 
 on:
   push:
-    branches: [zored/orca-ui-wishes]
+    branches: [robbo]
     paths: [.github/workflows/orca-ios-dev-ipa.yml]
     tags: ['orca-ios-dev-*']
 
