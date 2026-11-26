@@ -142,16 +142,7 @@ function Sidebar({
   const agentsCollapseState = useMemo(
     () => ({
       collapsedGroupKeys: agentsCollapsedGroupKeys,
-      onToggleGroupCollapse: (groupKey: string) =>
-        setAgentsCollapsedGroupKeys((prev) => {
-          const next = new Set(prev)
-          if (next.has(groupKey)) {
-            next.delete(groupKey)
-          } else {
-            next.add(groupKey)
-          }
-          return next
-        })
+      setCollapsedGroupKeys: setAgentsCollapsedGroupKeys
     }),
     [agentsCollapsedGroupKeys]
   )
@@ -264,6 +255,7 @@ function Sidebar({
             query={agentQuery}
             setQuery={setAgentQuery}
             optionsTarget={agentOptionsTarget}
+            collapseAllTarget={projectsCollapseTarget}
             badgeTarget={agentBadgeTarget}
             scrollTopRef={agentsScrollTopRef}
           />

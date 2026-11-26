@@ -74,6 +74,18 @@ export const getChatBehaviorEntriesByKey = createLocalizedCatalog(() => ({
       ...translateSearchKeyword('components.settings.nativeChat.queueSearchSteer', 'steer')
     ]
   },
+  collapseLiveActivity: {
+    targetSectionId: 'chat-collapse-live-activity',
+    title: translate(
+      'components.settings.nativeChat.collapseLiveActivity',
+      'Collapse live activity'
+    ),
+    description: translate(
+      'components.settings.nativeChat.collapseLiveActivityDescription',
+      'Show only a spinner while the agent works. Click it to see the current activity.'
+    ),
+    keywords: []
+  },
   collapseTldr: {
     targetSectionId: 'chat-collapse-tldr',
     title: translate('components.settings.nativeChat.collapseTldr', 'Collapse replies with a TLDR'),

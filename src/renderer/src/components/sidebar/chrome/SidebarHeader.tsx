@@ -79,7 +79,7 @@ const SidebarHeader = React.memo(function SidebarHeader({
       reorderable={collapsible}
       fold={fold}
       tourTarget={groupBy === 'repo' ? 'projects-collapse-all' : undefined}
-      // WorktreeList portals the collapse-all toggle here; it owns the rendered project rows.
+      // The active list owns the rendered groups and portals its collapse-all control here.
       titleAccessory={
         <div
           ref={projectsCollapseTarget}
