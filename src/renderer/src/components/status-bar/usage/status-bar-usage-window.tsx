@@ -1,10 +1,11 @@
 import { cn } from '@/lib/class-names'
-import { useTranslate } from '@/i18n/use-translate'
+import { useIntlLocale, useTranslate } from '@/i18n/use-translate'
 import type {
   ProviderRateLimits,
   RateLimitWindow
 } from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
 import { formatRateLimitWindowChipLabel } from '../../../../../shared/agent-usage/rate-limits/rate-limit-window-label'
+import { WEEKLY_WINDOW_MINUTES } from '../../../../../shared/agent-usage/display/usage-provider-windows'
 import {
   getDisplayedUsagePercentage,
   type UsagePercentageDisplay
@@ -12,10 +13,35 @@ import {
 import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-percentage-label'
 import { UsageBar } from './usage-meter'
 import { usagePace, usagePaceLabel } from './usage-pace'
+import { formatLocalizedResetDuration } from './usage-reset-caption'
 
 const METER_COLUMNS = {
   compact: 'grid-cols-[minmax(1rem,var(--usage-meter-width,1rem))]',
   detailed: 'grid-cols-[minmax(1.75rem,var(--usage-meter-width,1.75rem))]'
+}
+
+export function getStatusBarResetTimes(limits: ProviderRateLimits | null): (number | null)[] {
+  return [
+    limits?.session?.windowMinutes === 5 * 60 ? limits.session.resetsAt : null,
+    limits?.weekly?.windowMinutes === WEEKLY_WINDOW_MINUTES ? limits.weekly.resetsAt : null
+  ]
+}
+
+export function StatusBarResetCountdowns({
+  resetTimes,
+  now
+}: {
+  resetTimes: readonly (number | null)[]
+  now: number
+}): React.JSX.Element | null {
+  const locale = useIntlLocale()
+  const countdowns = resetTimes
+    .map((resetAt) => formatLocalizedResetDuration(resetAt, now, locale))
+    .filter(Boolean)
+    .join(' · ')
+  return countdowns ? (
+    <span className="whitespace-nowrap tabular-nums text-muted-foreground">{countdowns}</span>
+  ) : null
 }
 
 export function StatusBarWindowMeter({
