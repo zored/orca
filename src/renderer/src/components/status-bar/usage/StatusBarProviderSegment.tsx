@@ -17,7 +17,11 @@ import { formatCurrencyAmount } from '../../../../../shared/agent-usage/display/
 import { formatCreditCount } from '../../../../../shared/agent-usage/display/credit-count-format'
 import { ProviderIcon } from './provider-usage-panel'
 import { USAGE_WARNING_PERCENT } from './usage-health-tone'
-import { StatusBarWindowLabel, StatusBarWindowMeter } from './status-bar-usage-window'
+import {
+  ClaudeStatusBarMeter,
+  StatusBarWindowLabel,
+  StatusBarWindowMeter
+} from './status-bar-usage-window'
 import { getOwnerNotSetUpLabelParts } from '../../../../../shared/agent-usage/status-copy/owner-not-set-up-copy'
 import {
   getProviderUsageErrorMessage,
@@ -217,7 +221,7 @@ type ProviderSegmentProps = {
 export function ClippedRowProviderSegment(props: ProviderSegmentProps): React.JSX.Element {
   const [ref, onScreen] = useSectionOnScreen('viewport')
   return (
-    <span ref={ref} className="inline-flex items-center">
+    <span ref={ref} className="inline-flex items-center self-stretch">
       <ProviderSegment {...props} countdownActive={onScreen} />
     </span>
   )
@@ -261,6 +265,14 @@ export function ProviderSegment({
                   clampUsedPercent(window.usedPercent) >= USAGE_WARNING_PERCENT)
             )
             .map(({ window }) => window.resetsAt)
+  )
+
+  const compactBar = mode === 'compact'
+  // Why: the compact bar dims icons so the numbers carry the row.
+  const icon = (
+    <span className={compactBar ? 'inline-flex shrink-0 opacity-50' : 'inline-flex shrink-0'}>
+      <ProviderIcon provider={provider} />
+    </span>
   )
 
   // Why static: unfocused windows never poll, so a pending chip's pulse would redraw the compositor indefinitely.
@@ -310,15 +322,36 @@ export function ProviderSegment({
   const showBalance = isExtraUsageActive(p)
   const showGroupedPools =
     mode === 'verbose' && groupedBuckets.length > 0 && groupedBuckets.length === sections.length
+  const stackClaude =
+    provider === 'claude' && sections.length > 0 && Boolean(p.session || p.weekly || p.fableWeekly)
+  const labelSections =
+    stackClaude && p.weekly && !compactBar
+      ? sections.filter(({ window }) => window !== p.fableWeekly)
+      : sections
+
+  // Why: the compact bar drops pool names ("Cursor Models") from the row; the tooltip keeps them.
+  const providerName = getProviderDisplayName(provider)
+  const pool = sections.find((section) => section.labelFirst)?.label
+  const subject =
+    !pool || pool.startsWith(providerName) ? (pool ?? providerName) : `${providerName} ${pool}`
+  const compactTitle =
+    compactBar && tightest
+      ? `${subject}${tightest.window === p.fableWeekly ? ` · ${tightest.label}` : ''} ${formatUsagePercentageLabel(tightest.window.usedPercent, display, t)}`
+      : undefined
 
   return (
     <span
       className={
-        compactBar ? 'inline-flex items-center gap-[5px]' : 'inline-flex items-center gap-1.5'
+        compactBar
+          ? 'inline-flex items-center gap-[5px] self-stretch'
+          : 'inline-flex items-center gap-1.5 self-stretch'
       }
       title={compactTitle}
     >
       {icon}
+      {!template && !compact && stackClaude && (
+        <ClaudeStatusBarMeter limits={p} display={display} now={now} compact={compactBar} />
+      )}
       {template ? (
         <CustomUsageText template={template} limits={p} display={display} now={now} />
       ) : showGroupedPools ? (
@@ -339,11 +372,11 @@ export function ProviderSegment({
           />
         </>
       ) : (
-        sections.map((section, index) => (
+        labelSections.map((section, index) => (
           <React.Fragment key={section.key}>
             {index > 0 ? <span className="text-muted-foreground">·</span> : null}
-            <span className="inline-flex items-center gap-1">
-              {!compact ? (
+            <span className="inline-flex items-center gap-1 self-stretch">
+              {!compact && !stackClaude ? (
                 <StatusBarWindowMeter
                   window={section.window}
                   label={section.label}
@@ -361,7 +394,10 @@ export function ProviderSegment({
                 }
                 display={display}
                 showLabel={
-                  showLabels && section.label !== '' && !(compactBar && section.labelFirst)
+                  showLabels &&
+                  section.label !== '' &&
+                  section.window !== p.fableWeekly &&
+                  !(compactBar && section.labelFirst)
                 }
                 labelFirst={section.labelFirst}
                 compact={compactBar}

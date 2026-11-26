@@ -164,7 +164,7 @@ export function StatusBarUsageChangeNoticeCard({
 
   return (
     <>
-      <div ref={anchorRef} className="flex items-center gap-3">
+      <div ref={anchorRef} className="flex min-w-0 items-center gap-3 self-stretch">
         {children}
       </div>
       {card}
