@@ -7,6 +7,11 @@ import { useWorktreeJumpPaletteController } from './use-worktree-jump-palette-co
 
 export default function WorktreeJumpPalette(): React.JSX.Element | null {
   const visible = useAppStore((state) => state.activeModal === 'worktree-palette')
+  const requestedCommandsOnly = useAppStore((state) => state.modalData.commandsOnly === true)
+  const [commandsOnly, setCommandsOnly] = useState(requestedCommandsOnly)
+  if (visible && requestedCommandsOnly !== commandsOnly) {
+    setCommandsOnly(requestedCommandsOnly)
+  }
   const [lingering, setLingering] = useState(visible)
   useEffect(() => {
     if (visible) {
@@ -26,6 +31,7 @@ export default function WorktreeJumpPalette(): React.JSX.Element | null {
     <WorktreeJumpPaletteContent
       visible={visible}
       lingering={lingering}
+      commandsOnly={commandsOnly}
       createLookupGuard={createLookupGuard}
     />
   )
@@ -34,16 +40,19 @@ export default function WorktreeJumpPalette(): React.JSX.Element | null {
 function WorktreeJumpPaletteContent({
   visible,
   lingering,
+  commandsOnly,
   createLookupGuard
 }: {
   visible: boolean
   lingering: boolean
+  commandsOnly: boolean
   createLookupGuard: ReturnType<typeof createWorktreePaletteRequestGuard>
 }): React.JSX.Element {
   const controller = useWorktreeJumpPaletteController({
     visible,
     lingering,
+    commandsOnly,
     createLookupGuard
   })
-  return <WorktreeJumpPaletteSurface controller={controller} />
+  return <WorktreeJumpPaletteSurface controller={controller} commandsOnly={commandsOnly} />
 }

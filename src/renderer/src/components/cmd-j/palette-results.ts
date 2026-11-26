@@ -259,17 +259,22 @@ function compareRanked(a: RankedResult, b: RankedResult): number {
 export function rankCmdJMiddleResults({
   query,
   settingsResults,
-  actionResults
+  actionResults,
+  allowSingleCharacter = false
 }: {
   query: string
   settingsResults: readonly CmdJSettingsResult[]
   actionResults: readonly CmdJActionResult[]
+  allowSingleCharacter?: boolean
 }): CmdJRankedMiddleResult[] {
   if (isCmdJPaletteQueryTooLarge(query)) {
     return []
   }
   const normalizedQuery = normalizeCmdJPaletteQuery(query)
-  if (normalizedQuery.length < 2 || isCmdJPaletteQueryOverTokenLimit(normalizedQuery)) {
+  if (
+    normalizedQuery.length < (allowSingleCharacter ? 1 : 2) ||
+    isCmdJPaletteQueryOverTokenLimit(normalizedQuery)
+  ) {
     return []
   }
   const queryTokens = uniqueCmdJPaletteQueryTokens(normalizedQuery)

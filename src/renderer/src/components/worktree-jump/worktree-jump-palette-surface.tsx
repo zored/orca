@@ -9,6 +9,7 @@ import PaletteFilterChips from '@/components/cmd-j/PaletteFilterChips'
 import { PaletteLiveStatusProvider } from '@/components/cmd-j/palette-live-status'
 import { getPaletteFilterSelectionCount } from '@/components/cmd-j/palette-filter'
 import { useTranslate } from '@/i18n/use-translate'
+import { isImeOwnedKeyboardEvent } from '@/lib/text-input/ime/ime-composition-keyboard-event'
 import { WorkspaceEmojiSuggestionPopover } from '@/components/workspace-emoji/WorkspaceEmojiSuggestionPopover'
 import type { WorktreeJumpPaletteController } from './use-worktree-jump-palette-controller'
 import { WorktreeJumpPaletteEntry } from './rows/worktree-jump-palette-entry'
@@ -19,9 +20,11 @@ import {
 } from './results/worktree-jump-palette-empty-state'
 
 export function WorktreeJumpPaletteSurface({
-  controller
+  controller,
+  commandsOnly
 }: {
   controller: WorktreeJumpPaletteController
+  commandsOnly: boolean
 }): React.JSX.Element {
   const t = useTranslate()
   const selectedTask = controller.taskItems.find(
@@ -30,19 +33,22 @@ export function WorktreeJumpPaletteSurface({
   const modKey = navigator.userAgent.includes('Mac') ? '⌘' : 'Ctrl'
   const emptyState = getWorktreeJumpPaletteEmptyState(controller, t)
   const resultCount = getWorktreeJumpPaletteResultCount(controller)
-  const { scoped, botsEnabled } = controller.botScope
+  const scoped = !commandsOnly && controller.botScope.scoped
+  const botsEnabled = !commandsOnly && controller.botScope.botsEnabled
   const scopeHintId = 'worktree-jump-palette-bot-scope-hint'
-  const placeholder = scoped
-    ? t('bots.palette.scopedPlaceholder', 'Search bots...')
-    : botsEnabled
-      ? t(
-          'bots.palette.placeholder',
-          'Search bots, chats, terminals, workspaces, tasks, settings, and actions...'
-        )
-      : t(
-          'auto.components.WorktreeJumpPalette.27f10cca63',
-          'Search chats, terminals, workspaces, tasks, settings, and actions...'
-        )
+  const placeholder = commandsOnly
+    ? t('worktreeJumpPalette.commands.placeholder', 'Search commands...')
+    : scoped
+      ? t('bots.palette.scopedPlaceholder', 'Search bots...')
+      : botsEnabled
+        ? t(
+            'bots.palette.placeholder',
+            'Search bots, chats, terminals, workspaces, tasks, settings, and actions...'
+          )
+        : t(
+            'auto.components.WorktreeJumpPalette.27f10cca63',
+            'Search chats, terminals, workspaces, tasks, settings, and actions...'
+          )
   const paletteDialog = (
     <CommandDialog
       open={controller.visible}
@@ -50,17 +56,23 @@ export function WorktreeJumpPaletteSurface({
       shouldFilter={false}
       onOpenAutoFocus={controller.handleOpenAutoFocus}
       onCloseAutoFocus={controller.handleCloseAutoFocus}
-      title={t('auto.components.WorktreeJumpPalette.4ee378034d', 'Jump to...')}
+      title={
+        commandsOnly
+          ? t('keybindings.title.worktreeCommands', 'Show Command Palette')
+          : t('auto.components.WorktreeJumpPalette.4ee378034d', 'Jump to...')
+      }
       description={
-        botsEnabled
-          ? t(
-              'bots.palette.description',
-              'Search bots, chats, terminals, workspaces, tasks, settings, and actions'
-            )
-          : t(
-              'auto.components.WorktreeJumpPalette.2770f02910',
-              'Search chats, terminals, workspaces, tasks, settings, and actions'
-            )
+        commandsOnly
+          ? t('worktreeJumpPalette.commands.description', 'Search for a command to run')
+          : botsEnabled
+            ? t(
+                'bots.palette.description',
+                'Search bots, chats, terminals, workspaces, tasks, settings, and actions'
+              )
+            : t(
+                'auto.components.WorktreeJumpPalette.2770f02910',
+                'Search chats, terminals, workspaces, tasks, settings, and actions'
+              )
       }
       surface="palette"
       contentClassName="top-[min(10%,4rem)] w-[900px] max-w-[96vw] max-h-[min(90vh,calc(100vh-1.5rem))] overflow-hidden"
@@ -70,6 +82,10 @@ export function WorktreeJumpPaletteSurface({
         onValueChange: controller.handleCommandSelectionChange,
         className: 'jump-palette-command bg-transparent',
         onKeyDownCapture: (event: React.KeyboardEvent) => {
+          if (isImeOwnedKeyboardEvent(event)) {
+            event.stopPropagation()
+            return
+          }
           if (
             selectedTask &&
             event.key === 'Enter' &&
@@ -80,11 +96,8 @@ export function WorktreeJumpPaletteSurface({
             controller.handleSelectTask(selectedTask.result, true)
             return
           }
-          if (
-            controller.selectionMovedByUserRef &&
-            ['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(event.key)
-          ) {
-            controller.selectionMovedByUserRef.current = true
+          if (['ArrowDown', 'ArrowUp', 'Home', 'End', 'PageDown', 'PageUp'].includes(event.key)) {
+            controller.markSelectionMovedByUser()
           }
         }
       }}
@@ -96,7 +109,9 @@ export function WorktreeJumpPaletteSurface({
         aria-label={scoped ? t('bots.palette.scopedLabel', 'Search bots') : placeholder}
         aria-describedby={botsEnabled && !scoped ? scopeHintId : undefined}
         value={controller.query}
-        onValueChange={controller.emojiInput.handleValueChange}
+        onValueChange={
+          commandsOnly ? controller.handleQueryChange : controller.emojiInput.handleValueChange
+        }
         onClick={(event) => controller.emojiInput.syncCursor(event.currentTarget)}
         onSelect={(event) => controller.emojiInput.syncCursor(event.currentTarget)}
         onKeyDown={(event) => controller.emojiInput.handleKeyDown(event)}
@@ -121,18 +136,20 @@ export function WorktreeJumpPaletteSurface({
         }
         trailing={
           <div ref={controller.setDialogElementFromNode} className="shrink-0">
-            <PaletteFilterMenu
-              model={controller.filterModel}
-              filter={controller.filter}
-              onFilterChange={controller.setFilter}
-              onRequestInputFocus={controller.focusPaletteInput}
-              portalContainer={controller.dialogElement}
-              pausedReason={
-                scoped
-                  ? t('bots.palette.filtersPaused', 'Filters apply to workspaces, not bots')
-                  : null
-              }
-            />
+            {!commandsOnly ? (
+              <PaletteFilterMenu
+                model={controller.filterModel}
+                filter={controller.filter}
+                onFilterChange={controller.setFilter}
+                onRequestInputFocus={controller.focusPaletteInput}
+                portalContainer={controller.dialogElement}
+                pausedReason={
+                  scoped
+                    ? t('bots.palette.filtersPaused', 'Filters apply to workspaces, not bots')
+                    : null
+                }
+              />
+            ) : null}
           </div>
         }
       />
@@ -155,7 +172,7 @@ export function WorktreeJumpPaletteSurface({
         </span>
       ) : null}
       {/* Paused while showing only bots, so nothing here can edit a filter that isn't applied. */}
-      {scoped ? null : (
+      {scoped || commandsOnly ? null : (
         <PaletteFilterChips
           model={controller.filterModel}
           filter={controller.filter}
@@ -164,12 +181,11 @@ export function WorktreeJumpPaletteSurface({
       )}
       <CommandList
         ref={controller.listRef}
-        onPointerDownCapture={() => {
-          controller.selectionMovedByUserRef.current = true
-        }}
+        onPointerDownCapture={controller.markSelectionMovedByUser}
         className="max-h-[min(600px,calc(100vh-14rem))] px-2.5 pb-2.5 pt-2"
       >
-        {controller.isLoading &&
+        {!commandsOnly &&
+        controller.isLoading &&
         controller.selectableItems.length === 0 &&
         !controller.showCreateAction ? (
           <PaletteState
@@ -216,12 +232,16 @@ export function WorktreeJumpPaletteSurface({
             </>
           ) : null}
           <FooterKey>{t('auto.components.WorktreeJumpPalette.f65d992a11', 'Enter')}</FooterKey>
-          <span>{t('auto.components.WorktreeJumpPalette.45def60329', 'Open')}</span>
+          <span>
+            {commandsOnly
+              ? t('worktreeJumpPalette.commands.run', 'Run')
+              : t('auto.components.WorktreeJumpPalette.45def60329', 'Open')}
+          </span>
           <FooterKey>{t('auto.components.WorktreeJumpPalette.66b5a67bee', 'Esc')}</FooterKey>
           <span>{t('auto.components.WorktreeJumpPalette.75499e01d9', 'Close')}</span>
           <FooterKey>↑↓</FooterKey>
           <span>{t('auto.components.WorktreeJumpPalette.ac037cfac2', 'Move')}</span>
-          {scoped ? (
+          {commandsOnly ? null : scoped ? (
             <>
               <FooterKey>⌫</FooterKey>
               <span>{t('bots.palette.showEverything', 'Show everything')}</span>
@@ -247,7 +267,7 @@ export function WorktreeJumpPaletteSurface({
               defaultValue_one: 'Showing only bots. {{count}} result found.'
             })
           : null}
-        {!scoped && controller.filterActive
+        {!commandsOnly && !scoped && controller.filterActive
           ? `${t('worktreeJumpPalette.filter.ariaActiveCount', 'Filter: {{count}} active.', {
               count: getPaletteFilterSelectionCount(controller.filter),
               defaultValue_one: 'Filter: {{count}} active.'

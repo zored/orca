@@ -225,6 +225,7 @@ const MAIN_PROCESS_INTERCEPTED_ACTIONS: Partial<
   'app.settings': 'afterBrowserChords',
   'app.forceReload': 'afterBrowserChords',
   'worktree.palette': 'afterBrowserChords',
+  'worktree.commands': 'afterBrowserChords',
   'sidebar.left.toggle': 'afterBrowserChords',
   'sidebar.right.toggle': 'afterBrowserChords',
   'worktree.quickOpen': 'afterBrowserChords',

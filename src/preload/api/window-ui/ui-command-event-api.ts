@@ -111,7 +111,9 @@ export type UiCommandEventApi = {
   onToggleLeftSidebar: (callback: () => void) => () => void
   onToggleRightSidebar: (callback: () => void) => () => void
   /** `openOnly` comes from the View menu item, which opens but never closes the palette. */
-  onToggleWorktreePalette: (callback: (options?: { openOnly?: boolean }) => void) => () => void
+  onToggleWorktreePalette: (
+    callback: (options?: { openOnly?: boolean; commandsOnly?: boolean }) => void
+  ) => () => void
   onToggleFloatingTerminal: (callback: () => void) => () => void
   onTerminalShortcutCaptured: (
     callback: (data: { actionId: KeybindingActionId }) => void

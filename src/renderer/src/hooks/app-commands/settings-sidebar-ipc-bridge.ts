@@ -180,13 +180,17 @@ export function registerSettingsAndSidebarIpcBridge(unsubs: (() => void)[]): voi
   unsubs.push(
     window.api.ui.onToggleWorktreePalette((options) => {
       const store = useAppStore.getState()
-      if (store.activeModal === 'worktree-palette') {
+      const commandsOnly = options?.commandsOnly === true
+      if (
+        store.activeModal === 'worktree-palette' &&
+        (store.modalData.commandsOnly === true) === commandsOnly
+      ) {
         if (!options?.openOnly) {
           store.closeModal()
         }
         return
       }
-      store.openModal('worktree-palette')
+      store.openModal('worktree-palette', { commandsOnly })
     })
   )
 

@@ -1,6 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  defaultRangeExtractor,
   measureElement as measureVirtualElementSize,
   observeElementRect,
   useVirtualizer,
@@ -11,24 +10,22 @@ import { SectionCollapseAllButton } from '../../sidebar/worktree-list/controls/S
 import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
 import { ActivityThreadListToolbar } from './activity-thread-list-toolbar'
-import {
-  getActiveStickyHeaderIndex,
-  getActiveStickyHeaderIndexForScroll,
-  getPreviousStickyHeaderIndex
-} from '../../sidebar/worktree-list/viewport/virtual-rows'
+import { getActiveStickyHeaderIndexForScroll } from '../../sidebar/worktree-list/viewport/virtual-rows'
 import { ActivityThreadVirtualRow } from './activity-thread-virtual-row'
 import { ActivityThreadListResizeHandle } from './activity-thread-list-resize-handle'
 import {
   buildActivityVirtualItems,
   estimateActivityVirtualItemSize,
-  findActivityThreadItemIndex,
   getActivityHeaderItemIndexes,
-  getActivityVirtualItemKey
+  getActivityVirtualRange,
+  getActivityVirtualItemKey,
+  ACTIVITY_HEADER_ROW_ESTIMATE
 } from './activity-thread-virtual-items'
 import {
   ActivityThreadCollapseContext,
   toggleActivityGroups
 } from './activity-thread-collapse-context'
+import { useActivityThreadKeyboard } from './use-activity-thread-keyboard'
 import { useActivityThreadSelection } from './use-activity-thread-selection'
 import type {
   ActivityGroupBy,
@@ -190,10 +187,12 @@ export function ActivityThreadListPane({
     (thread: AgentPaneThread) => allowMarkUnreadWhenSelected || thread.paneKey !== selectedPaneKey,
     [allowMarkUnreadWhenSelected, selectedPaneKey]
   )
-  const selectedItemIndex = useMemo(
-    () => findActivityThreadItemIndex(virtualItems, selectedPaneKey),
-    [virtualItems, selectedPaneKey]
-  )
+  const { selectedItemIndex, keyboardTargetIndex, handleListKeyDown } = useActivityThreadKeyboard({
+    virtualItems,
+    selectedPaneKey,
+    scrollContainerRef,
+    onSelectThread
+  })
 
   // Key getItemKey to virtualItems: per-render closures invalidate measurements; a fully stable closure misses same-count reorders.
   const getItemKey = useCallback(
@@ -220,30 +219,12 @@ export function ActivityThreadListPane({
       )
     },
     rangeExtractor: useCallback(
-      (range: Range) => {
-        const activeStickyIndex =
-          groupBy !== 'none'
-            ? getActiveStickyHeaderIndex(headerItemIndexes, range.startIndex)
-            : null
-        const previousStickyIndex =
-          activeStickyIndex !== null
-            ? getPreviousStickyHeaderIndex(headerItemIndexes, activeStickyIndex)
-            : null
-        const indexSet = new Set(defaultRangeExtractor(range))
-        if (activeStickyIndex !== null) {
-          indexSet.add(activeStickyIndex)
-        }
-        if (previousStickyIndex !== null) {
-          indexSet.add(previousStickyIndex)
-        }
-        if (selectedItemIndex !== null && selectedItemIndex >= 0) {
-          indexSet.add(selectedItemIndex)
-        }
-        return Array.from(indexSet).sort((a, b) => a - b)
-      },
-      [groupBy, headerItemIndexes, selectedItemIndex]
+      (range: Range) =>
+        getActivityVirtualRange(range, headerItemIndexes, selectedItemIndex, keyboardTargetIndex),
+      [headerItemIndexes, selectedItemIndex, keyboardTargetIndex]
     ),
     overscan: 8,
+    scrollPaddingStart: groupBy === 'none' ? 0 : ACTIVITY_HEADER_ROW_ESTIMATE,
     observeElementRect: observeActivityListRect,
     useFlushSync: false
   })
@@ -335,8 +316,12 @@ export function ActivityThreadListPane({
       <div className="relative min-h-0 flex-1">
         <div
           ref={scrollContainerRef}
+          tabIndex={0}
+          role="region"
+          aria-label={t('activity.list.label', 'Activity threads')}
+          onKeyDown={(event) => handleListKeyDown(event, virtualizer.scrollToIndex)}
           onScroll={scrollTopRef ? handleScroll : undefined}
-          className="h-full overflow-y-auto overflow-x-hidden px-1.5 pb-1.5 pt-px scrollbar-sleek"
+          className="h-full overflow-y-auto overflow-x-hidden px-1.5 pb-1.5 pt-px scrollbar-sleek focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-ring"
         >
           <div
             className="relative w-full"

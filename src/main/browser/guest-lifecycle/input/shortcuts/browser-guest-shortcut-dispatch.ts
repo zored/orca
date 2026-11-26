@@ -203,7 +203,7 @@ export function forwardGuestShortcutInput(
   } else if (!page && action?.type === 'toggleRightSidebar') {
     renderer.send('ui:toggleRightSidebar')
   } else if (action?.type === 'toggleWorktreePalette') {
-    renderer.send('ui:toggleWorktreePalette')
+    renderer.send('ui:toggleWorktreePalette', { commandsOnly: action.commandsOnly })
   } else if (action?.type === 'openQuickOpen') {
     renderer.send('ui:openQuickOpen')
   } else if (action?.type === 'toggleQuickCommandsMenu') {

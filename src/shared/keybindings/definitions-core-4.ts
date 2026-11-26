@@ -233,5 +233,30 @@ export const KEYBINDING_DEFINITION_CORE_4: readonly KeybindingDefinition[] = [
     conflictGroups: ['global', 'tabs', 'botItem'],
     searchKeywords: ['shortcut', 'bot', 'item', 'items', 'next', 'down'],
     defaultBindings: platformBindings(['Mod+Alt+ArrowDown'])
+  },
+  {
+    id: 'worktree.commands',
+    title: 'Show Command Palette',
+    group: 'Global',
+    scope: 'global',
+    searchKeywords: ['shortcut', 'command', 'action', 'palette'],
+    defaultBindings: platformBindings(['Mod+Shift+P']),
+    implicitDefaultYields: true
+  },
+  {
+    id: 'sidebar.revealCurrent',
+    title: 'Reveal Current in Sidebar',
+    group: 'Global',
+    scope: 'global',
+    searchKeywords: ['shortcut', 'sidebar', 'reveal', 'current'],
+    defaultBindings: platformBindings([])
+  },
+  {
+    id: 'sidebar.activity.toggle',
+    title: 'Toggle Activity in Sidebar',
+    group: 'Global',
+    scope: 'global',
+    searchKeywords: ['shortcut', 'sidebar', 'activity', 'agents'],
+    defaultBindings: platformBindings([])
   }
 ]

@@ -2,6 +2,7 @@ import { isKeybindingActionId } from '../../../../shared/keybindings/definitions
 import type { KeybindingActionId } from '../../../../shared/keybindings/types'
 
 export type AppCommandSource =
+  | 'app-palette'
   | 'plugin-keybinding'
   | 'plugin-palette'
   | 'plugin-host'
@@ -12,17 +13,26 @@ export type AppCommandDispatcher = (
 ) => boolean
 
 let currentDispatcher: AppCommandDispatcher | null = null
+let readAvailableCommands: (() => KeybindingActionId[]) | null = null
 
-export function registerAppCommandDispatcher(dispatcher: AppCommandDispatcher): () => void {
+export function registerAppCommandDispatcher(
+  dispatcher: AppCommandDispatcher,
+  availableCommands: () => KeybindingActionId[]
+): () => void {
   currentDispatcher = dispatcher
+  readAvailableCommands = availableCommands
   return () => {
     if (currentDispatcher === dispatcher) {
       currentDispatcher = null
+      readAvailableCommands = null
     }
   }
 }
 
-/** Runs Orca's own handler for the action; plugin commands that replace it never run here. */
+export function getAvailableAppCommands(): KeybindingActionId[] {
+  return readAvailableCommands?.() ?? []
+}
+
 export function dispatchAppCommand(actionId: string, source: AppCommandSource): boolean {
   return isKeybindingActionId(actionId) && currentDispatcher !== null
     ? currentDispatcher(actionId, source)

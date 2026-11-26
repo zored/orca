@@ -46,16 +46,19 @@ function DialogClose({ ...props }: React.ComponentProps<typeof DialogPrimitive.C
 function DialogOverlay({
   className,
   scrim = 'default',
+  animateOpen = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay> & {
   /** `dark` hides the app behind full-window media. */
   scrim?: 'default' | 'dark'
+  animateOpen?: boolean
 }) {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        'fixed inset-0 z-50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0',
+        'fixed inset-0 z-50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
+        animateOpen && 'data-[state=open]:animate-in data-[state=open]:fade-in-0',
         scrim === 'dark' ? 'bg-black/80' : 'bg-black/55',
         className
       )}

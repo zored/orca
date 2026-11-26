@@ -30,6 +30,9 @@ export type PluginKeybindingActionId = `plugin:${string}`
 export type KeybindingActionId =
   | 'worktree.quickOpen'
   | 'worktree.palette'
+  | 'worktree.commands'
+  | 'sidebar.revealCurrent'
+  | 'sidebar.activity.toggle'
   | 'worktree.navigateUp'
   | 'worktree.navigateDown'
   | 'app.settings'

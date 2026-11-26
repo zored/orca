@@ -3,6 +3,9 @@
     "groups": {
       "collapseAll": "Collapse all activity groups",
       "expandAll": "Expand all activity groups"
+    },
+    "list": {
+      "label": "Activity threads"
     }
   },
   "agentLaunch": {
@@ -2093,6 +2096,12 @@
     "activityWaitingSuffix": "activity waiting"
   },
   "worktreeJumpPalette": {
+    "commands": {
+      "placeholder": "Search commands...",
+      "description": "Search for a command to run",
+      "empty": "No matching commands",
+      "run": "Run"
+    },
     "goToWebsite": "Go to {{value0}}",
     "openWebsiteInNewTab": "Open in a new browser tab",
     "websiteBadge": "Website",
@@ -26512,6 +26521,9 @@
   "keybindings": {
     "title": {
       "worktreePalette": "Search everything",
+      "worktreeCommands": "Show Command Palette",
+      "sidebarRevealCurrent": "Reveal Current in Sidebar",
+      "sidebarActivityToggle": "Toggle Activity in Sidebar",
       "worktreeNavigateUp": "Previous worktree",
       "worktreeNavigateDown": "Next worktree",
       "workspaceCreate": "Create worktree",

@@ -5,6 +5,9 @@ import type { WorktreeJumpPaletteController } from '../use-worktree-jump-palette
 export function getWorktreeJumpPaletteResultCount(
   controller: WorktreeJumpPaletteController
 ): number {
+  if (controller.commandsOnly) {
+    return controller.selectableItems.length
+  }
   return controller.hasQuery
     ? controller.worktreeItems.length +
         controller.projectTargetItems.length +
@@ -22,6 +25,12 @@ export function getWorktreeJumpPaletteEmptyState(
   title: string
   subtitle: string
 } {
+  if (controller.commandsOnly) {
+    return {
+      title: t('worktreeJumpPalette.commands.empty', 'No matching commands'),
+      subtitle: ''
+    }
+  }
   if (controller.filterActive) {
     return {
       title: t('worktreeJumpPalette.filter.emptyTitle', 'No results match the active filter'),

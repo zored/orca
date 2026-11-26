@@ -328,7 +328,6 @@ export function ProviderSegment({
   // Why: calm is honest only while the kept bars are recent; old ones still deserve the warning.
   const isStale =
     p.status === 'error' && (!calm || calmClock - p.updatedAt > CALM_STALE_USAGE_MAX_AGE_MS)
-  const showBalance = isExtraUsageActive(p)
   const showGroupedPools =
     mode === 'verbose' && groupedBuckets.length > 0 && groupedBuckets.length === sections.length
   const stackClaude =
@@ -426,7 +425,7 @@ export function ProviderSegment({
       {!template && showResetCountdowns && (
         <StatusBarResetCountdowns resetTimes={resetTimes} now={now} />
       )}
-      {!template && showBalance && p.extraUsage ? (
+      {!template && isExtraUsageActive(p) && p.extraUsage ? (
         <>
           <span className="text-muted-foreground">·</span>
           <span className="tabular-nums">{formatCompactExtraUsage(p.extraUsage, t)}</span>

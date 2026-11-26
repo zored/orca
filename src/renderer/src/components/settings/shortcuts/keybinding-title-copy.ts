@@ -23,6 +23,12 @@ const STATIC_TITLE_COPY = {
   'app.settings': () => translate('keybindings.title.e316152321', 'Open settings'),
   'app.forceReload': () => translate('keybindings.title.8a1982d598', 'Force reload'),
   'worktree.palette': () => translate('keybindings.title.worktreePalette', 'Search everything'),
+  'worktree.commands': () =>
+    translate('keybindings.title.worktreeCommands', 'Show Command Palette'),
+  'sidebar.revealCurrent': () =>
+    translate('keybindings.title.sidebarRevealCurrent', 'Reveal Current in Sidebar'),
+  'sidebar.activity.toggle': () =>
+    translate('keybindings.title.sidebarActivityToggle', 'Toggle Activity in Sidebar'),
   'worktree.navigateUp': () =>
     translate('keybindings.title.worktreeNavigateUp', 'Previous worktree'),
   'worktree.navigateDown': () =>

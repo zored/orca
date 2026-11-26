@@ -121,7 +121,6 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
     capturePresentation,
     ...(launch ? { launch } : {})
   })
-  const sendOptions = useStructuredAgentSessionSendOptions(sessionId, launch, sendSource)
   // Only a capable host may see `delivery`; a card any host publishes shows, with its actions.
   const queueCapability = useStructuredAgentSessionHostQueuesMessagesState(target)
   const queuedMessageIds = useMemo(
@@ -153,7 +152,7 @@ export function useStructuredAgentSession(args: StructuredAgentSessionViewArgs) 
     historyLoaded: transportEnabled && state.status === 'ready',
     isWorking: transportState.isWorking,
     stopping: stopControl.stopping,
-    sendSelection: sendOptions
+    sendSelection: useStructuredAgentSessionSendOptions(sessionId, launch, sendSource)
   })
 
   const usage = useStructuredAgentSessionContextUsage(journalItems, usageSupport, state.epoch)

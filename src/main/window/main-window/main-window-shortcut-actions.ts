@@ -30,7 +30,7 @@ export function sendResolvedWindowShortcutAction(
       mainWindow.webContents.send('ui:toggleRightSidebar')
       return
     case 'toggleWorktreePalette':
-      mainWindow.webContents.send('ui:toggleWorktreePalette')
+      mainWindow.webContents.send('ui:toggleWorktreePalette', { commandsOnly: action.commandsOnly })
       return
     case 'toggleFloatingTerminal':
       mainWindow.webContents.send('ui:toggleFloatingTerminal')

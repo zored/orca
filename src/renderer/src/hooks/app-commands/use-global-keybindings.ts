@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { toast } from 'sonner'
+import { registerAppShortcutCommands } from '../../lib/app-commands/app-command-registration'
 import { translate } from '@/i18n/i18n'
 import { canShowRightSidebarForView } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
 import { getSelectedTextForFileSearch } from '../../lib/files/search/file-search-selection'
-import { registerAppCommandDispatcher } from '@/lib/app-commands/app-command-dispatch'
 import { executePluginCommand } from '@/lib/plugins/commands/plugin-command-execution'
 import { runBuiltInOrReplacement } from '@/lib/plugins/commands/plugin-command-replacements'
 import {
@@ -81,16 +81,7 @@ export function useGlobalKeybindings(args: {
       ...shortcutStateRef.current,
       activeWorktreeId: useAppStore.getState().activeWorktreeId
     })
-    const unregisterAppCommandDispatcher = registerAppCommandDispatcher((actionId, source) =>
-      (
-        createAppCommandHandlers(
-          readShortcutState(),
-          undefined,
-          'app',
-          source === 'plugin-host'
-        ).get(actionId) ?? (() => false)
-      )()
-    )
+    const unregisterAppCommandDispatcher = registerAppShortcutCommands(readShortcutState)
 
     const dispatchShortcutInput = (input: ShortcutDispatchInput): void => {
       const state = readShortcutState()
@@ -225,11 +216,14 @@ export function useGlobalKeybindings(args: {
       }
 
       const handlers = createAppCommandHandlers(state, input, context)
-      if (
-        matchAppShortcut('sidebar.childWorkspaces.toggle') &&
-        handlers.get('sidebar.childWorkspaces.toggle')?.()
-      ) {
-        return
+      for (const actionId of [
+        'sidebar.childWorkspaces.toggle',
+        'sidebar.revealCurrent',
+        'sidebar.activity.toggle'
+      ] as const) {
+        if (matchAppShortcut(actionId) && handlers.get(actionId)?.()) {
+          return
+        }
       }
       if (
         input.key !== 'Dead' &&

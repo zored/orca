@@ -1,4 +1,9 @@
+import { defaultRangeExtractor, type Range } from '@tanstack/react-virtual'
 import type { ActivityGroupBy } from '../../../../../shared/agent-status/presentation/agents-view-thread-filters'
+import {
+  getActiveStickyHeaderIndex,
+  getPreviousStickyHeaderIndex
+} from '../../sidebar/worktree-list/viewport/virtual-rows'
 import type { ActivityThreadGroup, AgentPaneThread } from '../threads/activity-thread-types'
 
 /** One row of the virtualized Activity list: a group header or a thread. */
@@ -61,6 +66,20 @@ export function findActivityThreadItemIndex(
   return index === -1 ? null : index
 }
 
+export function findNextActivityThreadItemIndex(
+  items: readonly ActivityVirtualItemDescriptor[],
+  currentIndex: number | null,
+  direction: 1 | -1
+): number | null {
+  const start = currentIndex ?? (direction === 1 ? -1 : items.length)
+  for (let index = start + direction; index >= 0 && index < items.length; index += direction) {
+    if (items[index]?.type === 'thread') {
+      return index
+    }
+  }
+  return null
+}
+
 /** Indexes of header rows, for sticky-header resolution. */
 export function getActivityHeaderItemIndexes(
   items: readonly ActivityVirtualItemDescriptor[]
@@ -72,4 +91,22 @@ export function getActivityHeaderItemIndexes(
     }
   })
   return indexes
+}
+
+export function getActivityVirtualRange(
+  range: Range,
+  headerIndexes: readonly number[],
+  selectedIndex: number | null,
+  keyboardIndex: number | null
+): number[] {
+  const activeHeader = getActiveStickyHeaderIndex(headerIndexes, range.startIndex)
+  const previousHeader =
+    activeHeader === null ? null : getPreviousStickyHeaderIndex(headerIndexes, activeHeader)
+  const indexes = new Set(defaultRangeExtractor(range))
+  for (const index of [activeHeader, previousHeader, selectedIndex, keyboardIndex]) {
+    if (index !== null) {
+      indexes.add(index)
+    }
+  }
+  return Array.from(indexes).sort((a, b) => a - b)
 }

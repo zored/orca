@@ -128,8 +128,9 @@ export const ActivityThreadRow = React.memo(function ActivityThreadRow({
               {/* Keep the activation target separate from markdown links and row actions. */}
               <button
                 type="button"
+                data-activity-thread-primary=""
                 aria-label={taskTitle}
-                aria-keyshortcuts="Enter Space"
+                aria-keyshortcuts="Enter Space ArrowUp ArrowDown"
                 onClick={(event) => {
                   event.stopPropagation()
                   onSelect(thread, event)

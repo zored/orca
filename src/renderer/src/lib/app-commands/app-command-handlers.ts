@@ -1,24 +1,17 @@
 import { canShowRightSidebarForView } from '@/components/right-sidebar/visibility/right-sidebar-visibility'
 import { runBuiltInOrReplacement } from '@/lib/plugins/commands/plugin-command-replacements'
 import { isFloatingWorkspacePanelFocused } from '@/components/floating-terminal/workspace/floating-workspace-terminal-actions'
-import { hasVisibleOverlay } from '@/lib/overlay-interaction/visible-overlay'
 import { requestScrollToCurrentWorkspaceRevealAndRename } from '@/lib/workspace/navigation/scroll-to-current-workspace-status'
 import { toast } from 'sonner'
 import { readSidebarRevealTarget } from '@/components/sidebar/sidebar-reveal-target-state'
 import { workspaceRenameUnsupportedReason } from './workspace-rename-target'
-import { requestVirtualizedScrollAnchorRecord } from '@/lib/list-interaction/virtualized-scrolling/requestVirtualizedScrollAnchorRecord'
 import { setShowSleepingWorkspacesKeepingActiveRow } from '@/components/sidebar/worktree-list/controls/sleeping-workspaces-visibility'
 import { showTerminalShortcutCaptureNotification } from '@/lib/notifications/terminal-shortcut-capture-notification'
 import { canNavigateWorktreeHistory } from '../../app-shell/chrome/titlebar-worktree-history-controls'
 import { TOGGLE_WORKSPACE_BOARD_EVENT } from '../../components/sidebar/workspace-board/surface/useWorkspaceBoardPanel'
-import {
-  getRenderedLineageChipKeys,
-  resolveChildWorkspacesToggleGroupKey
-} from '../../components/sidebar/workspace-card/identity/child-workspaces-toggle-target'
 import { requestTerminalTabRename } from '../../components/tab-bar/terminal-tabs/terminal-tab-rename-request'
 import { useAppStore } from '../../store/index'
 import { showWorkspaceListThen } from '../../components/app-rail/app-rail-navigation'
-import { readRuntimeStatuses } from '@/store/slices/runtime-status/views/runtime-status-owner'
 import type { usePluginCommands } from '@/store/plugins/catalog/plugin-contribution-catalog'
 import { isGitRepoKind } from '../../../../shared/repository/repo-kind'
 import { openPluginsSettings } from '@/components/settings/navigation/open-plugins-settings'
@@ -32,6 +25,8 @@ import type {
 import { shortcutPlatform } from '../../app-shell/chrome/app-window-chrome'
 import '../../hooks/app-commands/use-app-shortcut-actions'
 import type { useAppShortcutActions } from '../../hooks/app-commands/use-app-shortcut-actions'
+
+import { createSidebarAppCommandHandlers } from './sidebar-app-command-handlers'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
@@ -80,7 +75,8 @@ export function createAppCommandHandlers(
   input?: ShortcutDispatchInput,
   keybindingContext: KeybindingContext = 'app',
   /** A plugin's `commands.run`: Orca's own action, never a plugin replacement (no loops). */
-  builtInOnly = false
+  builtInOnly = false,
+  paletteMode?: 'preview' | 'run'
 ): Map<KeybindingActionId, () => boolean> {
   const {
     activeView,
@@ -97,6 +93,9 @@ export function createAppCommandHandlers(
   const floatingWorkspaceFocused = isFloatingWorkspacePanelFocused()
   const canRevealRightSidebar = !creationLayoutActive && canShowRightSidebarForView(activeView)
   const claim = (actionId: KeybindingActionId, run: () => void): boolean => {
+    if (paletteMode === 'preview') {
+      return true
+    }
     input?.preventDefault()
     if (
       input &&
@@ -127,12 +126,16 @@ export function createAppCommandHandlers(
           actions.setRightSidebarOpen(true)
         })
       : false
+  const modalOutsidePalette = () => {
+    const { activeModal } = useAppStore.getState()
+    return paletteMode && activeModal === 'worktree-palette' ? 'none' : activeModal
+  }
 
   return new Map<KeybindingActionId, () => boolean>([
     [
       'worktree.history.back',
       () => {
-        const { activeModal } = useAppStore.getState()
+        const activeModal = modalOutsidePalette()
         if (creationLayoutActive || !canNavigateWorktreeHistory({ activeView, activeModal })) {
           return false
         }
@@ -142,7 +145,7 @@ export function createAppCommandHandlers(
     [
       'worktree.history.forward',
       () => {
-        const { activeModal } = useAppStore.getState()
+        const activeModal = modalOutsidePalette()
         if (creationLayoutActive || !canNavigateWorktreeHistory({ activeView, activeModal })) {
           return false
         }
@@ -170,36 +173,13 @@ export function createAppCommandHandlers(
           }
         })
     ],
-    [
-      'sidebar.childWorkspaces.toggle',
-      () => {
-        const store = useAppStore.getState()
-        // Locally controlled dialogs do not set activeModal.
-        if (
-          store.activeModal !== 'none' ||
-          floatingWorkspaceFocused ||
-          hasVisibleOverlay({ ignoreMatches: '[role="listbox"], [role="menu"]' })
-        ) {
-          return false
-        }
-        const groupKey = resolveChildWorkspacesToggleGroupKey(
-          store,
-          getRenderedLineageChipKeys(store, readRuntimeStatuses())
-        )
-        if (!groupKey) {
-          return false
-        }
-        return claim('sidebar.childWorkspaces.toggle', () => {
-          const expanding = store.collapsedGroups.has(groupKey)
-          // Match chip-click scroll anchoring to avoid viewport jumps.
-          requestVirtualizedScrollAnchorRecord('[data-worktree-sidebar]')
-          store.toggleCollapsedGroup(groupKey)
-          if (expanding) {
-            store.setSidebarOpen(true)
-          }
-        })
-      }
-    ],
+    ...createSidebarAppCommandHandlers({
+      claim,
+      creationLayoutActive,
+      floatingWorkspaceFocused,
+      modalOutsidePalette,
+      ignorePalette: paletteMode !== undefined
+    }),
     [
       'floatingWorkspace.maximize',
       () => {

@@ -68,13 +68,6 @@ export function UsageBar({
           }}
         />
       ) : null}
-      {pace !== undefined ? (
-        <span
-          data-usage-pace
-          className="absolute inset-y-0 w-px bg-foreground"
-          style={{ insetInlineStart: `clamp(0px, ${pace}%, calc(100% - 1px))` }}
-        />
-      ) : null}
     </span>
   )
 }
