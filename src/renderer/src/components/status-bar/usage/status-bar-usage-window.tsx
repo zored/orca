@@ -1,6 +1,10 @@
 import { cn } from '@/lib/class-names'
 import { useTranslate } from '@/i18n/use-translate'
-import type { RateLimitWindow } from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
+import type {
+  ProviderRateLimits,
+  RateLimitWindow
+} from '../../../../../shared/agent-usage/rate-limits/rate-limit-types'
+import { formatRateLimitWindowChipLabel } from '../../../../../shared/agent-usage/rate-limits/rate-limit-window-label'
 import {
   getDisplayedUsagePercentage,
   type UsagePercentageDisplay
@@ -9,36 +13,102 @@ import { formatBareUsagePercentage, formatUsagePercentageLabel } from './usage-p
 import { UsageBar } from './usage-meter'
 import { usagePace, usagePaceLabel } from './usage-pace'
 
+const METER_COLUMNS = {
+  compact: 'grid-cols-[minmax(1rem,var(--usage-meter-width,1rem))]',
+  detailed: 'grid-cols-[minmax(1.75rem,var(--usage-meter-width,1.75rem))]'
+}
+
 export function StatusBarWindowMeter({
   window,
   label,
   display,
   now,
-  compact = false
+  compact = false,
+  scopedWindow,
+  className
 }: {
   window: RateLimitWindow
   label: string
   display: UsagePercentageDisplay
   now: number
   compact?: boolean
+  scopedWindow?: { window: RateLimitWindow; label: string }
+  className?: string
 }): React.JSX.Element {
   const t = useTranslate()
   const pace = usagePace(window, now)
   const title = [
     label,
     formatUsagePercentageLabel(window.usedPercent, display, t),
-    usagePaceLabel(window.usedPercent, pace, t)
+    usagePaceLabel(window.usedPercent, pace, t),
+    scopedWindow
+      ? `${scopedWindow.label} · ${formatUsagePercentageLabel(scopedWindow.window.usedPercent, display, t)}`
+      : undefined
   ]
     .filter(Boolean)
     .join(' · ')
   return (
-    <span title={title} className="inline-flex">
+    <span
+      title={title}
+      className={cn(
+        'inline-grid self-stretch',
+        className ?? (compact ? METER_COLUMNS.compact : METER_COLUMNS.detailed)
+      )}
+    >
       <UsageBar
         usedPercent={window.usedPercent}
         display={display}
         paceUsedPercent={pace}
-        className={cn('h-1.5 shrink-0', compact ? 'w-4' : 'w-7')}
+        scopedUsedPercent={scopedWindow?.window.usedPercent}
+        className="min-h-1.5 w-full rounded-none"
       />
+    </span>
+  )
+}
+
+export function ClaudeStatusBarMeter({
+  limits: { session, weekly, fableWeekly },
+  display,
+  now,
+  compact
+}: {
+  limits: ProviderRateLimits
+  display: UsagePercentageDisplay
+  now: number
+  compact: boolean
+}): React.JSX.Element {
+  const t = useTranslate()
+  const fableLabel = t('auto.components.status.bar.StatusBar.a79c64f87e', 'Fable')
+  const weeklyTrack = weekly ?? fableWeekly
+  return (
+    <span
+      className={cn(
+        'inline-grid gap-px self-stretch',
+        compact ? METER_COLUMNS.compact : METER_COLUMNS.detailed,
+        session && weeklyTrack && 'grid-rows-[minmax(6px,3fr)_minmax(6px,1fr)]'
+      )}
+    >
+      {session ? (
+        <StatusBarWindowMeter
+          window={session}
+          label={formatRateLimitWindowChipLabel(session)}
+          display={display}
+          now={now}
+          className="w-full"
+        />
+      ) : null}
+      {weeklyTrack ? (
+        <StatusBarWindowMeter
+          window={weeklyTrack}
+          label={weekly ? formatRateLimitWindowChipLabel(weekly) : fableLabel}
+          scopedWindow={
+            weekly && fableWeekly ? { window: fableWeekly, label: fableLabel } : undefined
+          }
+          display={display}
+          now={now}
+          className="w-full"
+        />
+      ) : null}
     </span>
   )
 }

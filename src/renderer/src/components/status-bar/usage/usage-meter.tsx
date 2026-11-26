@@ -6,6 +6,7 @@ import { useTranslate } from '@/i18n/use-translate'
 import { cn } from '@/lib/class-names'
 import { useAppStore } from '../../../store'
 import {
+  clampUsedPercent,
   getDisplayedUsagePercentage,
   normalizeUsagePercentageDisplay,
   type UsagePercentageDisplay
@@ -22,6 +23,7 @@ export function UsageBar({
   display,
   tone = 'plain',
   paceUsedPercent,
+  scopedUsedPercent,
   className,
   trackClassName = 'bg-muted'
 }: {
@@ -29,6 +31,7 @@ export function UsageBar({
   display: UsagePercentageDisplay
   tone?: UsageBarTone
   paceUsedPercent?: number
+  scopedUsedPercent?: number
   className?: string
   trackClassName?: string
 }): React.JSX.Element {
@@ -50,9 +53,21 @@ export function UsageBar({
         />
       ) : null}
       <span
-        className={`relative block h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none ${usageBarClass(usedPercent, tone)}`}
+        className={`relative block h-full rounded-[inherit] transition-[width] duration-300 motion-reduce:transition-none ${usageBarClass(usedPercent, tone)}`}
         style={{ width: `${getDisplayedUsagePercentage(usedPercent, display)}%` }}
       />
+      {scopedUsedPercent !== undefined ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'absolute inset-y-0 bg-foreground/55 transition-[width] duration-300 motion-reduce:transition-none',
+            display === 'remaining' ? 'end-0' : 'start-0'
+          )}
+          style={{
+            width: `${(clampUsedPercent(usedPercent) * clampUsedPercent(scopedUsedPercent)) / 100}%`
+          }}
+        />
+      ) : null}
       {pace !== undefined ? (
         <span
           data-usage-pace

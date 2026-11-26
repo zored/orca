@@ -105,11 +105,11 @@ export function StatusBarUsageArea({
       ref={usageAreaRef}
       data-usage-area=""
       className={cn(
-        'relative flex flex-1 items-center overflow-clip [overflow-clip-margin:3px]',
+        'relative flex flex-1 self-stretch overflow-clip [overflow-clip-margin:3px]',
         hasVisibleUsageMeters ? 'min-w-16' : 'min-w-0'
       )}
     >
-      <div data-usage-row="" className="flex shrink-0 items-center gap-3">
+      <div data-usage-row="" className="flex min-w-0 max-w-full items-center gap-3">
         {isEmptyUsageState ? (
           showEmptyUsageCta ? (
             <StatusBarUsageEmptyCta remoteOwner={remoteOwner} />
@@ -126,7 +126,7 @@ export function StatusBarUsageArea({
                   type="button"
                   data-usage-trigger=""
                   className={cn(
-                    'inline-flex items-center rounded px-1 py-0.5 hover:bg-accent/70',
+                    'inline-flex min-w-0 items-center self-stretch rounded px-1 hover:bg-accent/70 [--usage-meter-width:250px]',
                     compactBar ? 'gap-3.5' : 'gap-3'
                   )}
                   aria-label={t('auto.components.status.bar.UsageRosterPanel.title', 'Usage')}
@@ -262,7 +262,7 @@ export function StatusBarUsageArea({
                 data-usage-refresh=""
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="p-0.5 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                className="shrink-0 rounded p-0.5 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
                 aria-label={t(
                   'auto.components.status.bar.StatusBar.3325d996cb',
                   'Refresh rate limits'

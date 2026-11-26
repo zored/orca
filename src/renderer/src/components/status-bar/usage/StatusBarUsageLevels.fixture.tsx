@@ -60,7 +60,7 @@ function levelsFixture(mode: StatusBarUsageMode) {
           [false, true].map((compact) => (
             <div
               key={`${row.label}-${compact}`}
-              className="flex items-center gap-3 whitespace-nowrap rounded border border-border px-2 py-1"
+              className="flex h-6 items-center gap-3 whitespace-nowrap rounded border border-border px-2 [--usage-meter-width:250px]"
             >
               <span className="w-32 shrink-0 text-muted-foreground">{`${row.label} · ${compact ? 'narrow' : 'normal'}`}</span>
               {row.providers.map((p) => (
