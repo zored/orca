@@ -1,6 +1,6 @@
 # Robbo's Orca fork
 
-Branch `robbo` of [zored/orca](https://github.com/zored/orca), based on upstream tag `v1.4.272`.
+Branch `robbo` of [zored/orca](https://github.com/zored/orca), based on upstream tag `v1.4.277`.
 Features land here first; each gets a section below.
 
 ## Run
@@ -29,6 +29,14 @@ named by content hash (`0.1.0+<hash>`), so the tag is the only link between the 
 | Tag                | Commit        | orcad build                              | Where it runs                                                                         |
 | ------------------ | ------------- | ---------------------------------------- | ------------------------------------------------------------------------------------- |
 | `v1.4.272-robbo.1` | `c93d142d0ad` | `0.1.0+be1818aabe72` (linux-arm64-glibc) | SSH host `kaleidoscope-ide` (active since 2026-11-26, rollback: `0.1.0+fe3ef7f521bd`) |
+
+### Local build: `v1.4.277-robbo.1`
+
+Source: `4c1d5790ae1c`. Verified locally on macOS arm64; not deployed to SSH.
+The build omits the optional `orcad` deployment template.
+
+The existing `~/Applications/Robbo Orca.app` launcher already points to the `robbo` worktree,
+where the build was refreshed. The running user app was not restarted.
 
 ## Remote orcad from the fork
 
