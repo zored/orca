@@ -2,6 +2,7 @@ import type SyncDatabase from '../../sqlite/sync-database'
 import type { TranscriptMessageRole } from '../../ai-vault/transcripts/session-transcript-consumers'
 import '../../ai-vault/parsing/session-scanner-text-normalization'
 import { sliceAtCodeUnitLimit } from '../../../shared/text/surrogate-safe-text-slice'
+import { containsEmoji } from '../../../shared/text/emoji-shortcode-catalog'
 import {
   hasAiVaultSearchQueryOperators,
   splitAiVaultSearchQuery,
@@ -39,7 +40,7 @@ import {
   encodeRankedSessionSearchCursor,
   type SessionSearchRankedCursor
 } from './session-search-ranked-cursor'
-import { planSessionSearchQuery } from './session-search-query-planner'
+import { planSessionSearchQuery, type SessionSearchQueryPlan } from './session-search-query-planner'
 import {
   SessionSearchRetrieval,
   type RetrievalScope,
@@ -108,12 +109,11 @@ export class SessionSearchEngine {
     const generation = readIndexGeneration(this.db)
     const incarnation = readIndexIncarnation(this.db)
     const scope = request.scope ?? 'all'
-    const sort = request.filters?.sort ?? 'relevance'
     const capped = sliceAtCodeUnitLimit(request.query, SESSION_SEARCH_QUERY_MAX_LENGTH)
     const split = splitAiVaultSearchQuery(capped)
     const retrievalScope: RetrievalScope = {
       scope,
-      sort,
+      sort: request.filters?.sort ?? 'relevance',
       filter: sessionRowFilter(request.filters ?? {}, this.options.retentionCutoffMs ?? null),
       matchesOperators: operatorPredicate(split),
       candidateLimit: this.candidateLimit
@@ -143,9 +143,11 @@ export class SessionSearchEngine {
 
     const plan = planSessionSearchQuery(split.text)
     const { ranked, retrieved, incomplete } =
-      plan.terms.length === 0
-        ? this.operatorOnly(split, retrievalScope)
-        : this.text(plan, retrievalScope, sort)
+      plan.terms.length > 0 || split.terms.some(containsEmoji)
+        ? this.text(plan, split, retrievalScope)
+        : hasAiVaultSearchQueryOperators(split)
+          ? this.operatorOnly(retrievalScope)
+          : { ranked: [], retrieved: null, incomplete: false }
 
     const limit = resolveSessionSearchLimit(request.limit)
     const snapshot: SessionSearchRankedCursor = {
@@ -220,22 +222,19 @@ export class SessionSearchEngine {
   }
 
   /** Operator-only queries use newest order and the same fork folding as text queries. */
-  private operatorOnly(split: AiVaultSearchQuerySplit, scope: RetrievalScope): RankedPage {
-    if (!hasAiVaultSearchQueryOperators(split)) {
-      return { ranked: [], retrieved: null, incomplete: false }
-    }
+  private operatorOnly(scope: RetrievalScope): RankedPage {
     const { sessions, incomplete } = this.retrieval.recent(scope)
     return { ranked: rankSessionHits(sessions, new Map(), 'newest'), retrieved: null, incomplete }
   }
 
   private text(
-    plan: ReturnType<typeof planSessionSearchQuery>,
-    scope: RetrievalScope,
-    sort: 'relevance' | 'newest'
+    plan: SessionSearchQueryPlan,
+    split: AiVaultSearchQuerySplit,
+    scope: RetrievalScope
   ): RankedPage {
-    const retrieved = this.retrieval.run(plan, scope)
+    const retrieved = plan.terms.length > 0 ? this.retrieval.run(plan, scope) : null
     const best = new Map<number, MessageRow>()
-    for (const row of retrieved.rows) {
+    for (const row of retrieved?.rows ?? []) {
       const previous = best.get(row.session_row_id)
       if (
         !previous ||
@@ -245,11 +244,15 @@ export class SessionSearchEngine {
         best.set(row.session_row_id, row)
       }
     }
-    const ranked = rankSessionHits(retrieved.sessions, best, sort)
+    const metadata = this.retrieval.metadata(split.terms.filter(Boolean), scope, split.repoTerms)
+    const ranked = rankSessionHits(retrieved?.sessions ?? [], best, scope.sort, metadata.sessions)
     return {
       ranked: ranked.slice(0, this.candidateLimit),
       retrieved,
-      incomplete: retrieved.incomplete || ranked.length >= this.candidateLimit
+      incomplete:
+        Boolean(retrieved?.incomplete) ||
+        metadata.incomplete ||
+        ranked.length >= this.candidateLimit
     }
   }
 

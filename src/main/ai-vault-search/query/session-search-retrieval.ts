@@ -18,6 +18,7 @@ import {
   SessionSearchVocabularyBudget
 } from './session-search-typo-repair'
 import { SessionSearchPostings, SESSION_SEARCH_MESSAGE_CANDIDATES } from './session-search-postings'
+import { SessionSearchMetadata } from './session-search-metadata'
 
 const RECENT_PAGE_ROWS = 512
 // Leave SQLite parameter capacity for filter values as well as session IDs.
@@ -75,9 +76,24 @@ export function scopedWeights(scope: SessionSearchScope): string {
 
 export class SessionSearchRetrieval {
   private readonly typoRepair: SessionSearchTypoRepair
+  private readonly metadataSearch: SessionSearchMetadata
 
   constructor(private readonly db: SyncDatabase) {
     this.typoRepair = new SessionSearchTypoRepair(db)
+    this.metadataSearch = new SessionSearchMetadata(db, SESSION_COLUMN_LIST)
+  }
+
+  metadata(
+    terms: readonly string[],
+    scope: RetrievalScope,
+    repoTerms: readonly string[]
+  ): { sessions: SessionRow[]; incomplete: boolean } {
+    return this.metadataSearch.find(
+      terms,
+      repoTerms,
+      scope,
+      scope.candidateLimit * RECENT_SCAN_FACTOR
+    )
   }
 
   /** Preserve original OR hits before spending the remaining allowance on optional repair. */

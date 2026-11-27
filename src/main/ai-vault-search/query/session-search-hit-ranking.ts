@@ -30,7 +30,7 @@ export type MessageRow = {
 
 export type RankedSession = {
   session: SessionRow
-  /** Null on an operator-only page: the session matched no text at all. */
+  /** Null for a metadata or operator match without matching messages. */
   message: MessageRow | null
   score: number
   duplicateCount: number
@@ -40,10 +40,18 @@ export type RankedSession = {
 export function rankSessionHits(
   sessions: readonly SessionRow[],
   matches: ReadonlyMap<number, MessageRow>,
-  sort: SessionSearchSort
+  sort: SessionSearchSort,
+  metadata: readonly SessionRow[] = []
 ): RankedSession[] {
+  const metadataMatches = new Set(metadata.map((session) => session.id))
+  const candidates = [
+    ...sessions.filter((session) => !metadataMatches.has(session.id)),
+    ...metadata
+  ]
+  const byMetadata = (left: RankedSession, right: RankedSession) =>
+    Number(metadataMatches.has(right.session.id)) - Number(metadataMatches.has(left.session.id))
   const scored = collapseForks(
-    sessions.map((session) => {
+    candidates.map((session) => {
       const message = matches.get(session.id) ?? null
       return {
         session,
@@ -51,12 +59,13 @@ export function rankSessionHits(
         score: (message?.score ?? 0) - LENGTH_PRIOR * Math.log(1 + session.message_count),
         duplicateCount: 1
       }
-    })
+    }),
+    byMetadata
   )
   // Newer sessions win score ties; row ids make cursor ordering deterministic.
   scored.sort(
     (left, right) =>
-      (sort === 'newest' ? 0 : right.score - left.score) ||
+      (sort === 'newest' ? 0 : byMetadata(left, right) || right.score - left.score) ||
       (right.session.updated_at ?? '').localeCompare(left.session.updated_at ?? '') ||
       left.session.id - right.session.id
   )
@@ -64,7 +73,10 @@ export function rankSessionHits(
 }
 
 /** Fold matching prefixes at query time so per-file indexing cursors and deletion remain independent. */
-function collapseForks(scored: RankedSession[]): RankedSession[] {
+function collapseForks(
+  scored: RankedSession[],
+  byMetadata: (left: RankedSession, right: RankedSession) => number
+): RankedSession[] {
   const groups = new Map<string, RankedSession[]>()
   for (const entry of scored) {
     const { content_hash: hash, content_hash_count: count, id } = entry.session
@@ -82,7 +94,10 @@ function collapseForks(scored: RankedSession[]): RankedSession[] {
       collapsed.push(group[0]!)
       continue
     }
-    const winner = group.reduce((best, entry) => (isNewer(entry, best) ? entry : best))
+    const winner = group.reduce((best, entry) => {
+      const metadataOrder = byMetadata(entry, best)
+      return metadataOrder < 0 || (metadataOrder === 0 && isNewer(entry, best)) ? entry : best
+    })
     collapsed.push({ ...winner, duplicateCount: group.length })
   }
   return collapsed
