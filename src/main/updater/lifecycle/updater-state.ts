@@ -1,4 +1,4 @@
-import type { BrowserWindow } from 'electron'
+import { app, type BrowserWindow } from 'electron'
 import type { ElectronAutoUpdater } from '../electron-updater-loader'
 import type { LocalBuildFeed } from '../../local-builds/local-build-feed-server'
 import type {
@@ -60,6 +60,10 @@ export class ReleaseFeedPreflightError extends Error {
 }
 
 export abstract class UpdaterState {
+  protected canCheckDesktopUpdates(): boolean {
+    return app.isPackaged && !app.getVersion().includes('-robbo.')
+  }
+
   protected getMainWindow: () => BrowserWindow | null = () => null
   protected currentStatus: UpdateStatus = { state: 'idle' }
   protected userInitiatedCheck = false

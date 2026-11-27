@@ -20,6 +20,27 @@ The dev instance runs next to the regular Orca with its own data in
 settings and SSH targets from the regular install once, while the dev profile is empty.
 Terminal sessions, automations and chat history stay in the regular install.
 
+## macOS builds from GitHub
+
+Build the tip of `robbo`:
+
+```sh
+gh workflow run robbo-mac-build.yml -R zored/orca --ref robbo
+```
+
+Download `robbo-macos-arm64` from the [workflow run](https://github.com/zored/orca/actions/workflows/robbo-mac-build.yml).
+A push to a `v*-robbo.*` tag also publishes the DMG and ZIP in [Releases](https://github.com/zored/orca/releases).
+
+Copy `Orca.app` from the DMG or ZIP to Applications. If you already have official Orca there, use
+`~/Applications` for the fork and run the command against that copy instead. The build has no
+Developer ID signature or notarization. For a download you trust, clear macOS quarantine:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Orca.app
+```
+
+Desktop auto-update is off in these packages. Install the next fork release manually.
+
 ## Versions
 
 Tags `v<upstream>-robbo.<n>` mark fork builds that were run somewhere, so a server or desktop

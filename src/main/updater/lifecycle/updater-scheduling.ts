@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import { isMacInstallRequested } from '../mac-install/updater-mac-install'
 import { withUpdaterSpan } from '../../observability/instrumentation'
 import {
@@ -75,7 +74,7 @@ export abstract class UpdaterScheduling extends UpdaterCheckFailure {
     ) {
       return false
     }
-    if (!app.isPackaged) {
+    if (!this.canCheckDesktopUpdates()) {
       this.sendStatus({ state: 'not-available' })
       return false
     }
