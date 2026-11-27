@@ -38,6 +38,28 @@ The build omits the optional `orcad` deployment template.
 The existing `~/Applications/Robbo Orca.app` launcher already points to the `robbo` worktree,
 where the build was refreshed. The running user app was not restarted.
 
+## Changelog
+
+### Unreleased
+
+- Activity: Option+Up/Down moves through visible threads in the sidebar and full-page view,
+  even when the next row needs to scroll into view. Chat inputs, terminals and dialogs keep their keys.
+- Agent Session History: find indexed chats by exact UUID or title, including emoji-only titles,
+  alongside message matches. Checked against the existing local index and with fixtures covering
+  workspace and agent filters, path and repo operators, retention, and paging.
+
+### Local build `v1.4.277-robbo.1`
+
+- Rebased the fork on upstream stable `v1.4.277`.
+- Added the commands-only palette (`Cmd+Shift+P` on macOS), with configurable Reveal Current,
+  Activity and chat model/effort shortcuts. Bot-scoped search follows the current query,
+  and the palette only offers worktree history directions that are available.
+- Added keyboard focus and group folding in Activity. Search Everything opens without animation.
+  Usage shows reset times and a separate Claude Fable segment, without the thin pace marker.
+- Kept optional TLDR-first replies on desktop and mobile, plugin-contributed agent presets,
+  and the bot panel.
+- Mobile: kept the optional Larger list rows setting. Native iOS was not verified live.
+
 ## Remote orcad from the fork
 
 An SSH host runs its own orcad, deployed by the desktop from `orcad-template`. A dev desktop
