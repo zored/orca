@@ -25,7 +25,10 @@ import {
   ActivityThreadCollapseContext,
   toggleActivityGroups
 } from './activity-thread-collapse-context'
-import { useActivityThreadKeyboard } from './use-activity-thread-keyboard'
+import {
+  useActivityNavigationShortcut,
+  useActivityThreadKeyboard
+} from './use-activity-thread-keyboard'
 import { useActivityThreadSelection } from './use-activity-thread-selection'
 import type {
   ActivityGroupBy,
@@ -187,12 +190,13 @@ export function ActivityThreadListPane({
     (thread: AgentPaneThread) => allowMarkUnreadWhenSelected || thread.paneKey !== selectedPaneKey,
     [allowMarkUnreadWhenSelected, selectedPaneKey]
   )
-  const { selectedItemIndex, keyboardTargetIndex, handleListKeyDown } = useActivityThreadKeyboard({
-    virtualItems,
-    selectedPaneKey,
-    scrollContainerRef,
-    onSelectThread
-  })
+  const { selectedItemIndex, keyboardTargetIndex, handleListKeyDown, navigateThreads } =
+    useActivityThreadKeyboard({
+      virtualItems,
+      selectedPaneKey,
+      scrollContainerRef,
+      onSelectThread
+    })
 
   // Key getItemKey to virtualItems: per-render closures invalidate measurements; a fully stable closure misses same-count reorders.
   const getItemKey = useCallback(
@@ -279,6 +283,10 @@ export function ActivityThreadListPane({
       : null
 
   const resizable = onResizeStart !== undefined
+  useActivityNavigationShortcut(scrollContainerRef, resizable, (event) =>
+    navigateThreads(event, virtualizer.scrollToIndex)
+  )
+
   return (
     <aside
       ref={threadListRef}

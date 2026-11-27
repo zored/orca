@@ -1,14 +1,19 @@
 import {
   useCallback,
+  useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type RefObject
 } from 'react'
 import type { Virtualizer } from '@tanstack/react-virtual'
+import { hasVisibleOverlay } from '@/lib/overlay-interaction/visible-overlay'
+import { INPUT_PROXY_SELECTOR, isEditableTarget } from '@/lib/text-input/focus/editable-target'
 import { isImeOwnedKeyboardEvent } from '@/lib/text-input/ime/ime-composition-keyboard-event'
+import { useAppStore } from '@/store'
 import type { AgentPaneThread } from '../threads/activity-thread-types'
 import {
   findActivityThreadItemIndex,
@@ -33,7 +38,7 @@ export function useActivityThreadKeyboard({
   )
   const [keyboardTarget, setKeyboardTarget] = useState<string | null>(null)
   const keyboardTargetIndex = findActivityThreadItemIndex(virtualItems, keyboardTarget)
-  const awaitingFocus = useRef(false)
+  const pendingFocus = useRef<string | null>(null)
 
   const focusThreadAtIndex = useCallback(
     (index: number) => {
@@ -41,24 +46,58 @@ export function useActivityThreadKeyboard({
         `[data-index="${index}"] [data-activity-thread-primary]`
       )
       target?.focus({ preventScroll: true })
-      return target !== null && target !== undefined
+      return target != null && document.activeElement === target
     },
     [scrollContainerRef]
   )
   useLayoutEffect(() => {
-    if (
-      awaitingFocus.current &&
-      keyboardTargetIndex !== null &&
-      (document.activeElement === document.body ||
-        scrollContainerRef.current?.contains(document.activeElement))
-    ) {
-      focusThreadAtIndex(keyboardTargetIndex)
+    if (pendingFocus.current === null) {
+      return
     }
-    awaitingFocus.current = false
-  }, [focusThreadAtIndex, keyboardTargetIndex, scrollContainerRef])
+    if (
+      keyboardTargetIndex === null ||
+      document.activeElement !== scrollContainerRef.current ||
+      focusThreadAtIndex(keyboardTargetIndex)
+    ) {
+      pendingFocus.current = null
+    }
+  })
+
+  const navigateThreads = (
+    event: Pick<KeyboardEvent, 'key' | 'target' | 'preventDefault'>,
+    scrollToIndex: Virtualizer<HTMLDivElement, Element>['scrollToIndex']
+  ): void => {
+    const row =
+      event.target instanceof Element && event.target.closest('[data-activity-thread-primary]')
+    const rowIndex =
+      row && scrollContainerRef.current?.contains(row)
+        ? row.closest<HTMLElement>('[data-index]')?.dataset.index
+        : undefined
+    const index =
+      rowIndex === undefined
+        ? (findActivityThreadItemIndex(virtualItems, pendingFocus.current) ?? selectedItemIndex)
+        : Number(rowIndex)
+    const next = findNextActivityThreadItemIndex(
+      virtualItems,
+      index,
+      event.key === 'ArrowDown' ? 1 : -1
+    )
+    const item = next === null ? null : virtualItems[next]
+    if (next === null || item?.type !== 'thread') {
+      return
+    }
+    event.preventDefault()
+    scrollToIndex(next, { align: 'auto' })
+    pendingFocus.current = null
+    if (!focusThreadAtIndex(next)) {
+      scrollContainerRef.current?.focus({ preventScroll: true })
+      pendingFocus.current = item.thread.paneKey
+    }
+    setKeyboardTarget(item.thread.paneKey)
+  }
 
   const handleListKeyDown = (
-    event: KeyboardEvent<HTMLDivElement>,
+    event: ReactKeyboardEvent<HTMLDivElement>,
     scrollToIndex: Virtualizer<HTMLDivElement, Element>['scrollToIndex']
   ): void => {
     const { key, target, currentTarget } = event
@@ -74,8 +113,10 @@ export function useActivityThreadKeyboard({
     ) {
       return
     }
-    if (key === 'Enter' && target === currentTarget && selectedItemIndex !== null) {
-      const item = virtualItems[selectedItemIndex]
+    if (key === 'Enter' && target === currentTarget) {
+      const index =
+        findActivityThreadItemIndex(virtualItems, pendingFocus.current) ?? selectedItemIndex
+      const item = index === null ? null : virtualItems[index]
       if (item?.type === 'thread') {
         event.preventDefault()
         onSelectThread(item.thread)
@@ -86,16 +127,42 @@ export function useActivityThreadKeyboard({
       return
     }
     event.preventDefault()
-    const rowIndex = target.closest<HTMLElement>('[data-index]')?.dataset.index
-    const index = rowIndex === undefined ? selectedItemIndex : Number(rowIndex)
-    const next = findNextActivityThreadItemIndex(virtualItems, index, key === 'ArrowDown' ? 1 : -1)
-    const item = next === null ? null : virtualItems[next]
-    if (next !== null && item?.type === 'thread') {
-      scrollToIndex(next, { align: 'auto' })
-      awaitingFocus.current = !focusThreadAtIndex(next)
-      setKeyboardTarget(item.thread.paneKey)
-    }
+    navigateThreads(event, scrollToIndex)
   }
 
-  return { selectedItemIndex, keyboardTargetIndex, handleListKeyDown }
+  return { selectedItemIndex, keyboardTargetIndex, handleListKeyDown, navigateThreads }
+}
+
+export function useActivityNavigationShortcut(
+  scrollContainerRef: RefObject<HTMLDivElement | null>,
+  fullPage: boolean,
+  navigateThreads: (event: KeyboardEvent) => void
+): void {
+  const handleActivityShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const list = scrollContainerRef.current
+    if (
+      event.defaultPrevented ||
+      !event.altKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.shiftKey ||
+      (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') ||
+      isImeOwnedKeyboardEvent(event) ||
+      isEditableTarget(event.target) ||
+      (event.target instanceof Element &&
+        event.target.closest(`.xterm, ${INPUT_PROXY_SELECTOR}`)) ||
+      (!fullPage && useAppStore.getState().activeView === 'activity') ||
+      !list?.checkVisibility({ visibilityProperty: true }) ||
+      list.closest('[inert], [aria-hidden="true"]') ||
+      hasVisibleOverlay({ ignoreDismissed: true, ignoreContaining: list })
+    ) {
+      return
+    }
+    navigateThreads(event)
+  })
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => handleActivityShortcut(event)
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 }
