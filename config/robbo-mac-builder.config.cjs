@@ -13,6 +13,7 @@ module.exports = {
   },
   mac: {
     ...upstream.mac,
+    artifactName: 'orca-macos-${arch}.${ext}',
     identity: null,
     notarize: false
   }
