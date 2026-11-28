@@ -1,4 +1,4 @@
-name: Robbo macOS build
+name: Robbo release builds
 
 on:
   push:
@@ -64,9 +64,50 @@ jobs:
             dist/orca-macos-arm64.zip
           if-no-files-found: error
 
+  server:
+    if: github.repository == 'zored/orca'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          package-manager-cache: false
+      - uses: ./.github/actions/setup-pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - uses: ./.github/actions/build-mobile-web-bundle
+      - name: Build and pack the x64 server
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          pnpm build:orcad-template --targets linux-x64-glibc
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" node config/scripts/orcad-distribution/server-artifact/pack-orcad-server-artifact.mjs \
+            --template out/orcad-template --target linux-x64-glibc --out-dir out/orca-server
+          git rev-parse HEAD > out/orca-server/orca-server-linux-x64.commit
+      - name: Start and pair on Ubuntu 22.04 without system Node
+        run: |
+          docker run --rm --init \
+            -v "$PWD/out/orca-server:/artifacts:ro" \
+            -v "$PWD/config/scripts/orcad-distribution/server-artifact:/smoke:ro" \
+            ubuntu:22.04 sh -ec '
+              mkdir /tmp/runtime
+              tar -xzf /artifacts/orca-server-linux-x64.tar.gz -C /tmp/runtime --strip-components=1
+              /tmp/runtime/runtimes/node-*/bin/node /smoke/smoke-orcad-server-artifact.mjs --archive /artifacts/orca-server-linux-x64.tar.gz
+            '
+      - uses: actions/upload-artifact@v7
+        with:
+          name: robbo-server-linux-x64
+          path: |
+            out/orca-server/orca-server-linux-x64.tar.gz
+            out/orca-server/orca-server-linux-x64.tar.gz.sha256
+            out/orca-server/orca-server-linux-x64.commit
+          if-no-files-found: error
+
   release:
     if: github.repository == 'zored/orca' && github.event_name == 'push' && github.ref_type == 'tag'
-    needs: build
+    needs: [build, server]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -74,10 +115,14 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: robbo-macos-arm64
+      - uses: actions/download-artifact@v8
+        with:
+          name: robbo-server-linux-x64
       - name: Publish the tagged release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" orca-macos-arm64.dmg orca-macos-arm64.zip \
+            orca-server-linux-x64.tar.gz orca-server-linux-x64.tar.gz.sha256 orca-server-linux-x64.commit \
             --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME" \
-            --notes "Orca for Apple silicon. Ad-hoc signed, not notarized. Update by installing a newer fork release."
+            --notes "Orca for Apple silicon (ad-hoc signed, not notarized) and a headless Linux x64 server with bundled Node. Update by installing a newer fork release."
